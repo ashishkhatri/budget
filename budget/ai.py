@@ -486,7 +486,7 @@ def suggest(con, rows: List[dict], progress=lambda **kw: None,
     if not model:
         models = list_models(base)
         if not models:
-            raise AIError("LM Studio has no model loaded. Load one, or pick a model in Accounts & Data.")
+            raise AIError("LM Studio has no model loaded. Load one, or pick a model in Settings.")
         model = models[0]
     examples = [(r[0], r[1]) for r in con.execute("""
         SELECT t.merchant, c.name FROM transactions t JOIN categories c ON c.id = t.category_id
