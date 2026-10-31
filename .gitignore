@@ -1,0 +1,12 @@
+.venv/
+data/
+__pycache__/
+*.pyc
+# Never commit personal data, secrets or logs
+*.sqlite
+*.sqlite-*
+*.db
+*.log
+.env
+.env.*
+backups/

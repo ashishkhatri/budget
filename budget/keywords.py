@@ -1,0 +1,111 @@
+"""Built-in merchant keywords -> category.
+
+Edit freely. Matching is case-insensitive on whole words at the start
+(e.g. "MCDONALD" matches "MCDONALD'S #123"). Keywords of 4 characters or
+less must match a whole word ("RENT" won't match "CURRENT"). When several
+keywords match, the longest wins, so "UBER EATS" beats "UBER".
+
+Your own rules (Categories & Rules page) always take priority over these.
+"""
+
+KEYWORDS = {
+    'Transfers': [
+        'PAYMENT THANK YOU', 'RETURNED PAYMENT', 'PAYMENT RETURNED', 'AUTOMATIC PAYMENT', 'AUTOPAY', 'ONLINE TRANSFER', 'TRANSFER TO',
+        'TRANSFER FROM', 'ONLINE PAYMENT', 'CREDIT CRD', 'CRD EPAY', 'EPAYMENT', 'E-PAYMENT', 'MOBILE PMT',
+        'MOBILE PAYMENT', 'PAYMENT TO CHASE CARD', 'APPLECARD GSBANK', 'CARD PAYMENT', 'INTERNET PAYMENT',
+        'ROBINHOOD', 'FIDELITY', 'VANGUARD', 'SCHWAB', 'COINBASE',
+    ],
+    'Income': [
+        'PAYROLL', 'DIRECT DEP', 'DIR DEP', 'SALARY', 'INTEREST PAYMENT', 'INTEREST EARNED', 'INTEREST PAID',
+        'IRS TREAS', 'TAX REF', 'DIVIDEND',
+    ],
+    'Groceries': [
+        'KROGER', 'HEB', 'H-E-B', 'WHOLE FOODS', 'WHOLEFDS', 'TRADER JOE', 'ALDI', 'PUBLIX', 'SAFEWAY',
+        'WEGMANS', 'JEWEL', 'MARIANO', 'MEIJER', 'SPROUTS', 'FOOD LION', 'GIANT EAGLE', 'COSTCO', 'SAMSCLUB',
+        "SAM'S CLUB", 'WALMART', 'WAL-MART', 'WM SUPERCENTER', 'INSTACART', 'H MART', 'HY-VEE', 'WINCO',
+        'STOP & SHOP', 'ALBERTSONS', 'RALPHS', 'VONS', 'FRESH THYME', 'PATEL BROTHERS', 'FOOD 4 LESS',
+        'SHOPRITE', 'HARRIS TEETER', 'WINN-DIXIE', 'TOM THUMB', 'FIESTA MART', 'CENTRAL MARKET',
+    ],
+    'Dining': [
+        'UBER EATS', 'UBEREATS', 'DOORDASH', 'DD DOORDASH', 'GRUBHUB', 'POSTMATES', 'STARBUCKS', 'MCDONALD',
+        'CHIPOTLE', 'DUNKIN', 'SUBWAY', 'CHICK-FIL-A', 'CHICKFILA', 'TACO BELL', 'WENDY', 'BURGER KING',
+        'PANERA', 'DOMINO', 'PIZZA', 'PAPA JOHN', 'SWEETGREEN', 'CAVA', 'FIVE GUYS', 'SHAKE SHACK',
+        'WHATABURGER', 'IN-N-OUT', 'POPEYES', 'KFC', 'RAISING CANE', 'PANDA EXPRESS', 'JIMMY JOHN',
+        'JERSEY MIKE', 'DAIRY QUEEN', 'SONIC DRIVE', 'IHOP', "DENNY'S", 'OLIVE GARDEN', 'APPLEBEE',
+        'BUFFALO WILD', 'TST', 'RESTAURANT', 'CAFE', 'COFFEE', 'GRILL', 'KITCHEN', 'TAQUERIA', 'BAKERY',
+        'SUSHI', 'BREWING', 'TAVERN', 'DINER', 'BISTRO',
+    ],
+    'Gas & Fuel': [
+        'COSTCO GAS', 'SHELL', 'EXXON', 'MOBIL', 'CHEVRON', 'BP', 'MARATHON', 'SPEEDWAY', 'CIRCLE K', 'WAWA',
+        'SHEETZ', 'QT', 'QUIKTRIP', 'VALERO', 'SUNOCO', 'CITGO', 'PHILLIPS 66', "CASEY'S", 'BUC-EE', 'CASEYS', 'BUCEE',
+        '7-ELEVEN', 'MURPHY USA', 'MURPHY EXPRESS', 'ARCO', 'RACETRAC', 'GAS STATION', 'FUEL',
+    ],
+    'Transportation': [
+        'UBER', 'LYFT', 'CTA', 'VENTRA', 'METRA', 'MTA', 'PARKING', 'PARKMOBILE', 'SPOTHERO', 'TOLL',
+        'TOLLWAY', 'E-ZPASS', 'EZPASS', 'NTTA', 'TXTAG', 'EZ TAG', 'HCTRA', 'PARKWHIZ', 'JIFFY LUBE', 'AUTOZONE', "O'REILLY", 'DMV',
+        'CAR WASH', 'FIRESTONE', 'DISCOUNT TIRE', 'TESLA SUPERCHARGER',
+    ],
+    'Shopping': [
+        'AMAZON', 'AMZN', 'TARGET', 'BEST BUY', 'MICRO CENTER', 'NEWEGG', 'EBAY', 'ETSY', 'MACY', "KOHL'S", 'KOHLS', 'TJ MAXX',
+        'TJMAXX', 'MARSHALLS', 'ROSS STORES', 'NORDSTROM', 'OLD NAVY', 'GAP', 'NIKE', 'APPLE STORE', 'SHEIN',
+        'TEMU', 'DOLLAR TREE', 'DOLLAR GENERAL', 'FAMILY DOLLAR', 'UNIQLO', 'ZARA', 'H&M', 'BURLINGTON',
+        'MICHAELS', 'HOBBY LOBBY',
+    ],
+    'Health & Fitness': [
+        'WALGREENS', 'CVS', 'PHARMACY', 'DENTAL', 'DENTIST', 'MEDICAL', 'HOSPITAL', 'CLINIC', 'DOCTOR',
+        'OPTOMETR', 'PLANET FITNESS', 'LA FITNESS', 'EQUINOX', 'PELOTON', 'GYM', 'LABCORP', 'QUEST DIAG',
+        'ONE MEDICAL', 'ORANGETHEORY', 'YMCA', 'HEALTH',
+    ],
+    'Home': [
+        'HOME DEPOT', "LOWE'S", 'LOWES', 'IKEA', 'WAYFAIR', 'MENARDS', 'ACE HARDWARE', 'BED BATH',
+        'HOMEGOODS', 'CRATE & BARREL',
+    ],
+    'Subscriptions': [
+        'AMAZON PRIME', 'PRIME VIDEO', 'NETFLIX', 'SPOTIFY', 'HULU', 'DISNEY PLUS', 'DISNEYPLUS', 'DISNEY+',
+        'HBO', 'MAX.COM', 'YOUTUBE', 'APPLE.COM/BILL', 'GOOGLE STORAGE', 'GOOGLE ONE', 'PEACOCK', 'PARAMOUNT',
+        'AUDIBLE', 'OPENAI', 'CHATGPT', 'ANTHROPIC', 'CLAUDE.AI', 'ADOBE', 'MICROSOFT', 'DROPBOX', 'ICLOUD',
+        'PATREON', 'SIRIUSXM', 'NYTIMES', 'SUBSTACK',
+    ],
+    'Bills & Utilities': [
+        'COMCAST', 'XFINITY', 'AT&T', 'ATT', 'VERIZON', 'T-MOBILE', 'TMOBILE', 'SPECTRUM', 'COMED',
+        'PEOPLES GAS', 'NICOR', 'DUKE ENERGY', 'RELIANT', 'TXU', 'ONCOR', 'CENTERPOINT', 'ATMOS', 'PG&E',
+        'CON ED', 'ELECTRIC', 'WATER', 'UTILITY', 'UTILITIES', 'GOOGLE FI', 'MINT MOBILE', 'CRICKET',
+        'VISIBLE', 'WASTE MGMT',
+    ],
+    'Rent & Mortgage': [
+        'RENT', 'MORTGAGE', 'APARTMENTS', 'PROPERTY MGMT', 'PROPERTY MANAGEMENT', 'BILT', 'HOA',
+    ],
+    'Insurance': [
+        'GEICO', 'PROGRESSIVE', 'STATE FARM', 'ALLSTATE', 'LIBERTY MUTUAL', 'LEMONADE', 'INSURANCE',
+        'USAA P&C',
+    ],
+    'Entertainment': [
+        'AMC', 'REGAL', 'CINEMA', 'CINEMARK', 'TICKETMASTER', 'STUBHUB', 'LIVE NATION', 'STEAM', 'STEAMGAMES',
+        'PLAYSTATION', 'XBOX', 'NINTENDO', 'BOWL', 'TOPGOLF', 'EVENTBRITE',
+    ],
+    'Travel': [
+        'AIRLINES', 'AIRLINE', 'DELTA AIR', 'UNITED AIR', 'AMERICAN AIR', 'SOUTHWEST', 'SPIRIT AIR',
+        'FRONTIER', 'ALASKA AIR', 'JETBLUE', 'MARRIOTT', 'HILTON', 'HYATT', 'HOLIDAY INN', 'AIRBNB', 'VRBO',
+        'EXPEDIA', 'BOOKING.COM', 'HOTEL', 'HERTZ', 'ENTERPRISE RENT', 'AVIS', 'NATIONAL CAR', 'AMTRAK',
+        'GREYHOUND', 'TSA PRE',
+    ],
+    'Personal Care': [
+        'GREAT CLIPS', 'SUPERCUTS', 'SALON', 'BARBER', 'SPA', 'ULTA', 'SEPHORA', 'NAIL',
+    ],
+    'Education': [
+        'TUITION', 'UNIVERSITY', 'COLLEGE', 'COURSERA', 'UDEMY', 'SCHOOL', 'CHEGG', 'BARNES & NOBLE',
+    ],
+    'Pets': [
+        'PETSMART', 'PETCO', 'CHEWY', 'VET', 'VETERINARY', 'BANFIELD',
+    ],
+    'Gifts & Donations': [
+        'DONATION', 'CHARITY', 'GOFUNDME', 'RED CROSS', 'CHURCH', 'TEMPLE', 'UNICEF',
+    ],
+    'Fees & Interest': [
+        'FEE', 'INTEREST CHARGE', 'PURCHASE INTEREST', 'LATE FEE', 'OVERDRAFT', 'SERVICE CHARGE',
+        'ANNUAL MEMBERSHIP', 'FOREIGN TRANSACTION',
+    ],
+    'Cash & ATM': [
+        'ATM', 'CASH WITHDRAWAL', 'ATM WITHDRAWAL', 'ATM CASH',
+    ],
+}

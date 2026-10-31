@@ -1,0 +1,1641 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Budget</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#2f6b4f">
+<style>
+:root{
+  --bg:#f6f5f1; --panel:#ffffff; --ink:#1d1d1b; --muted:#6b6a64; --line:#e4e2db;
+  --accent:#2f6b4f; --accent-ink:#ffffff; --accent-soft:#e3efe8;
+  --neg:#b4452f; --pos:#2f6b4f; --warn:#b07a12; --warn-soft:#f8eed6;
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.04);
+  --scroll:#d6d3ca; --scroll-hover:#b3b0a6;
+  --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%236b6a64'/%3E%3C/svg%3E");
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#151614; --panel:#1e201d; --ink:#ecebe6; --muted:#9b9a93; --line:#2f312d;
+    --accent:#6fbf92; --accent-ink:#0f1a14; --accent-soft:#223a2d;
+    --neg:#e8836b; --pos:#6fbf92; --warn:#e2b04a; --warn-soft:#3a3120;
+    --shadow:none;
+    --scroll:#353833; --scroll-hover:#4d514a;
+    --chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%239b9a93'/%3E%3C/svg%3E");
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+/* Thin, theme-colored scrollbars that only stand out when you point at them */
+*{scrollbar-width:thin;scrollbar-color:var(--scroll) transparent}
+*:hover{scrollbar-color:var(--scroll-hover) transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 "Segoe UI",system-ui,-apple-system,sans-serif}
+button,input,select{font:inherit;color:inherit}
+header{display:flex;align-items:center;gap:24px;padding:14px 28px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+header h1{font-size:18px;margin:0;font-weight:650;letter-spacing:-.01em}
+header h1 span{color:var(--accent)}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{background:none;border:0;padding:8px 14px;border-radius:8px;cursor:pointer;color:var(--muted);font-weight:550}
+nav button:hover{background:var(--bg);color:var(--ink)}
+nav button.active{background:var(--accent-soft);color:var(--accent)}
+main{max-width:1180px;margin:0 auto;padding:24px 28px 80px}
+.view{display:none}.view.active{display:block}
+h2{font-size:20px;margin:0 0 4px;font-weight:650;letter-spacing:-.01em}
+h3{font-size:14px;margin:0 0 12px;font-weight:650;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;box-shadow:var(--shadow)}
+.grid{display:grid;gap:16px}
+.kpis{grid-template-columns:repeat(4,1fr)}
+.two{grid-template-columns:3fr 2fr}
+.halves{grid-template-columns:1fr 1fr}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.two,.halves{grid-template-columns:1fr}header{flex-wrap:wrap;gap:8px;padding:12px 16px}main{padding:16px}}
+.kpi .label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.kpi .value{font-size:26px;font-weight:650;margin-top:4px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.kpi .hint{color:var(--muted);font-size:12px;margin-top:2px}
+.kpi.click{cursor:pointer}.kpi.click:hover{border-color:var(--warn)}
+.kpi.click.go:hover{border-color:var(--accent)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+.btn{border:1px solid var(--line);background:var(--panel);padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:550}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--neg)}
+.btn.small{padding:3px 10px;font-size:12px}
+input[type=text],input[type=number],input[type=search],input[type=password],select{border:1px solid var(--line);background:var(--panel);padding:7px 10px;border-radius:8px;min-width:0}
+input:focus,select:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);cursor:default}
+th.sortable{cursor:pointer}th.sortable:hover{color:var(--ink)}
+td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.date{white-space:nowrap;color:var(--muted);font-variant-numeric:tabular-nums}
+td.desc{max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Fixed column widths, so lists don't jump around as filters change what's in them */
+table.fixed{table-layout:fixed}
+table.fixed td.desc{max-width:none}
+table.fixed td.clip,table.fixed .clip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+table.fixed td select:not(.review-cat){max-width:calc(100% - 52px)}
+table.fixed .review-cat{max-width:100%}
+.rec-off td{opacity:.6}
+.rec-sec td{background:var(--bg);font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:8px 10px}
+.rec-sec td .tiny{text-transform:none;letter-spacing:0;font-weight:400}
+.rec-sec a{color:var(--muted);text-decoration:none}.rec-sec a:hover{color:var(--ink)}
+@media (max-width:900px){table.fixed{table-layout:auto}}
+td select{padding:3px 6px;font-size:13px;max-width:180px}
+/* Our own dropdown arrow, with room to breathe on the right (the browser's sits against the edge) */
+select:not([multiple]){appearance:none;-webkit-appearance:none;background-image:var(--chev);background-repeat:no-repeat;
+  background-position:right 10px center;background-size:9px 5px;padding-right:28px!important;text-overflow:ellipsis}
+td select:not([multiple]){background-position:right 8px center;padding-right:24px!important}
+.neg{color:var(--neg)}.pos{color:var(--pos)}
+.muted{color:var(--muted)}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;background:var(--bg);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.warn{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:0}
+.bars .bar-row{display:grid;grid-template-columns:150px 1fr 150px;gap:12px;align-items:center;padding:6px 0;cursor:pointer}
+.bars .bar-row:hover .bar-label{color:var(--accent)}
+.bar-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{height:12px;background:var(--bg);border-radius:6px;position:relative;overflow:visible}
+.bar-fill{height:100%;border-radius:6px}
+.bar-budget{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.55;border-radius:1px}
+.bar-amt{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bar-amt small{color:var(--muted)}
+.over{color:var(--neg);font-weight:600}
+.drop{display:block;border:2px dashed var(--line);border-radius:14px;padding:48px 20px;text-align:center;background:var(--panel);cursor:pointer;transition:.15s}
+.drop:hover,.drop.hover{border-color:var(--accent);background:var(--accent-soft)}
+.drop strong{display:block;margin-top:0;font-size:17px;margin-bottom:6px}
+.banks{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px;justify-content:center}
+.scroll{max-height:62vh;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.empty{text-align:center;padding:40px;color:var(--muted)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:20;padding:20px}
+.modal-bg.show{display:flex}
+.modal{background:var(--panel);border-radius:14px;max-width:1000px;width:100%;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-head{padding:18px 22px;border-bottom:1px solid var(--line)}
+.modal-body{padding:16px 22px;overflow:auto;flex:1}
+.modal-foot{padding:14px 22px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center}
+.notice{background:var(--warn-soft);color:var(--warn);padding:9px 12px;border-radius:8px;margin:0 0 12px;font-size:13px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:10px;display:none;gap:12px;align-items:center;z-index:30;box-shadow:0 8px 30px rgba(0,0,0,.25);max-width:92vw}
+.toast.show{display:flex}
+.toast .btn{background:color-mix(in srgb,var(--bg) 10%,transparent);color:var(--bg);border:1px solid color-mix(in srgb,var(--bg) 55%,transparent);white-space:nowrap}
+.toast .btn:hover{background:color-mix(in srgb,var(--bg) 20%,transparent);border-color:var(--bg)}
+#toast-actions{flex-wrap:nowrap;flex-shrink:0}
+.toast .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+tr.dup td{opacity:.5}
+.chart svg{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font-size:11px}
+#dash-trend{position:relative;cursor:pointer}
+#dash-trend .tm{transition:opacity .08s}
+#dash-trend.hover .tm{opacity:.3}
+#dash-trend.hover .tm.on{opacity:1}
+#dash-trend .t-band{fill:transparent;transition:fill .08s}
+#dash-trend .t-band.on{fill:color-mix(in srgb,var(--ink) 7%,transparent)}
+.t-tip{position:absolute;top:0;pointer-events:none;opacity:0;transition:opacity .08s;background:var(--panel);border:1px solid var(--line);
+  border-radius:8px;padding:8px 10px;font-size:12px;min-width:150px;box-shadow:0 6px 20px rgba(0,0,0,.18);z-index:5}
+.t-tip.show{opacity:1}
+.t-tip b{display:block;margin-bottom:4px}
+.t-tip div{display:flex;align-items:center;gap:6px;padding:1px 0}
+.t-tip div span{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600}
+.t-tip i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.t-tip .t-net{border-top:1px solid var(--line);margin-top:4px;padding-top:4px}
+.t-tip .t-net span.pos{color:var(--pos)} .t-tip .t-net span.over{color:var(--neg)}
+.t-tip .t-hint{color:var(--muted);font-size:11px;margin-top:4px}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-bottom:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.list-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);gap:10px}
+.list-row:last-child{border-bottom:0}
+.color-input{width:28px;height:28px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer}
+.tiny{font-size:12px}
+a{color:var(--accent)}
+a.btn{text-decoration:none;display:inline-block}
+.btn:disabled{opacity:.5;cursor:default}
+code{font-family:Consolas,ui-monospace,monospace;font-size:12.5px;background:var(--bg);padding:1px 6px;border-radius:5px}
+.ai-bar{display:none;align-items:center;gap:12px;padding:9px 28px;background:var(--accent-soft);color:var(--accent);font-weight:550;font-size:13px;border-bottom:1px solid var(--line)}
+.ai-bar.show{display:flex}
+.ai-bar .track{flex:0 0 180px;height:6px;border-radius:3px;background:color-mix(in srgb,var(--accent) 20%,transparent);overflow:hidden}
+.ai-bar .fill{height:100%;background:var(--accent);width:0;transition:width .3s}
+.spin{width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pill.ai{background:var(--accent-soft);color:var(--accent);border-color:transparent;font-size:11px;padding:0 6px;margin-left:4px}
+.btn.ai-btn{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+.field{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;margin-bottom:10px}
+.field label{color:var(--muted);font-size:13px}
+.status-line{font-size:13px;margin-top:8px}
+.dialog-bg{z-index:40}
+.dialog{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 24px 18px;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.dialog p{margin:0 0 18px;font-size:15px;line-height:1.5;white-space:pre-line}
+.dialog .row{justify-content:flex-end}
+.dialog.wide{max-width:820px}
+.split-box{max-height:50vh;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
+.split-box td{padding:8px 10px;vertical-align:top}
+#dlg-name:not(.pick-in),.split-name{text-transform:uppercase}
+.pick-list{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px}
+.pick-item{display:flex;justify-content:space-between;gap:10px;padding:6px 10px;cursor:pointer}
+.pick-item:hover,.pick-item.hi{background:var(--accent-soft)}
+.split-sug{display:inline-block;margin-top:3px;color:var(--muted);text-decoration:none}.split-sug:hover{color:var(--accent)}
+.btn.danger-solid{background:var(--neg);border-color:var(--neg);color:#fff}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:550}
+.chip button{background:none;border:0;color:inherit;cursor:pointer;font-size:15px;line-height:1;padding:0 4px}
+a.mlink{color:var(--ink);text-decoration:none;font-weight:550}a.mlink:hover{color:var(--accent);text-decoration:underline}
+.review{border-color:color-mix(in srgb,var(--warn) 45%,var(--line));margin-bottom:16px;padding:0}
+.review-head{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none}
+.review-head h3{margin:0;color:var(--warn)}
+.review-head .caret{transition:transform .15s;color:var(--muted)}
+.review.collapsed .caret{transform:rotate(-90deg)}
+.review.collapsed .review-body{display:none}
+.review-body{max-height:300px;overflow:auto;border-top:1px solid var(--line)}
+.review-body td{padding:8px 12px}
+.review-body .ex{color:var(--muted);font-size:12px;max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-aliases{color:var(--muted);font-size:12px;margin-top:2px;max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-actions{white-space:nowrap;text-align:right}
+.m-actions .btn{padding:2px 8px;font-size:12px}
+.auto-hint{color:var(--muted);font-size:12px;margin-left:6px}
+table.fixed .m-aliases,table.fixed .ex{max-width:100%}
+.review-body td:first-child{overflow:hidden}
+.dups{border-color:color-mix(in srgb,var(--neg) 40%,var(--line))}
+.dups .review-head h3{color:var(--neg)}
+.dups tr.dup-head td{background:var(--bg);font-weight:600;padding:8px 12px;border-top:1px solid var(--line)}
+.dups tr.dup-row td{padding:6px 12px}
+.dups tr.dup-row.extra td:first-child{color:var(--muted)}
+.dups tr.dup-row td:first-child{padding-left:24px}
+input[type=date]{border:1px solid var(--line);background:var(--panel);padding:6px 8px;border-radius:8px}
+.tx-m .tx-x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:11px;padding:0 4px;margin-left:2px;transition:transform .15s;vertical-align:1px}
+.tx-m .tx-x:hover{color:var(--ink)}
+.tx-m .tx-orig{display:none;color:var(--muted);font-size:12px;white-space:normal;word-break:break-word;margin-top:2px}
+.tx-m.open .tx-orig{display:block}
+.tx-m.open .tx-x{transform:rotate(90deg)}
+.tx-m.open{white-space:normal}
+.msel{position:relative}
+.msel-btn{border:1px solid var(--line);background:var(--panel);padding:7px 30px 7px 10px;border-radius:8px;cursor:pointer;min-width:150px;max-width:230px;text-align:left;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative}
+.msel-btn::after{content:"▾";position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:11px}
+.msel-btn.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:550}
+.msel-pop{display:none;position:absolute;z-index:15;top:calc(100% + 4px);left:0;min-width:240px;max-width:320px;background:var(--panel);border:1px solid var(--line);
+  border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:8px}
+.msel.open .msel-pop{display:block}
+.msel-x{display:none;position:absolute;right:4px;top:50%;transform:translateY(-50%);width:22px;height:22px;border:0;border-radius:6px;
+  background:transparent;color:var(--accent);font-size:16px;line-height:1;cursor:pointer;padding:0}
+.msel-x:hover{background:color-mix(in srgb,var(--accent) 18%,transparent)}
+.msel.has .msel-x{display:block}
+.msel.has .msel-btn::after{display:none}
+.msel-q{width:100%;margin-bottom:6px}
+.msel-list{max-height:280px;overflow:auto}
+.msel-list label{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.msel-list label:hover{background:var(--bg)}
+.msel-list .sub{color:var(--muted);font-size:12px;margin-left:auto;padding-left:8px;align-self:center;line-height:1}
+.msel-foot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);margin-top:6px;padding-top:6px;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1 style="display:flex;align-items:center;gap:9px"><img src="/static/icons/icon-192.png" alt="" width="26" height="26" style="border-radius:6px"><span>Budget<span>.</span></span></h1>
+  <nav id="nav">
+    <button data-view="dashboard" class="active">Dashboard</button>
+    <button data-view="transactions">Transactions</button>
+    <button data-view="merchants">Merchants</button>
+    <button data-view="recurring">Recurring</button>
+    <button data-view="import">Import</button>
+    <button data-view="budgets">Budgets</button>
+    <button data-view="rules">Categories &amp; Rules</button>
+    <button data-view="data">Accounts &amp; Data</button>
+  </nav>
+</header>
+<div class="ai-bar" id="ai-bar"><span class="spin"></span><span id="ai-bar-text">AI is categorizing…</span><div class="track"><div class="fill" id="ai-bar-fill"></div></div></div>
+
+<main>
+  <section class="view active" id="view-dashboard">
+    <div class="row" style="margin-bottom:18px">
+      <div><h2 id="dash-title">Overview</h2><p class="sub" style="margin:0" id="dash-sub"></p></div>
+      <div class="spacer"></div>
+      <select id="dash-account"></select>
+      <span id="dash-custom" class="row" style="gap:6px;display:none"><input type="date" id="dash-from"><span class="muted">to</span><input type="date" id="dash-to"></span>
+      <select id="dash-period"></select>
+    </div>
+    <div id="dash-empty" class="card empty" style="display:none">
+      <p style="font-size:16px;color:var(--ink);margin:0 0 6px"><strong>No transactions yet</strong></p>
+      <p style="margin:0 0 16px">Download a CSV (or PDF statement) from your bank and import it.</p>
+      <button class="btn primary" onclick="go('import')">Import a statement</button>
+    </div>
+    <div id="dash-content">
+      <div class="grid kpis" style="margin-bottom:16px">
+        <div class="card kpi click go" id="k-income-card" title="Show the income transactions"><div class="label">Income</div><div class="value pos" id="k-income"></div><div class="hint" id="k-income-h"></div></div>
+        <div class="card kpi click go" id="k-spend-card" title="Show the spending transactions"><div class="label">Spending</div><div class="value" id="k-spend"></div><div class="hint" id="k-spend-h"></div></div>
+        <div class="card kpi"><div class="label">Net</div><div class="value" id="k-net"></div><div class="hint" id="k-net-h"></div></div>
+        <div class="card kpi click" id="k-uncat-card" title="Review uncategorized"><div class="label">Needs review</div><div class="row" style="gap:10px"><div class="value" id="k-uncat"></div><button class="btn small ai-btn ai-run" id="k-ai" style="display:none;margin-top:6px">✦ Categorize with AI</button></div><div class="hint">uncategorized transactions</div></div>
+      </div>
+      <div class="grid two">
+        <div class="card"><h3>Spending by category</h3><div class="bars" id="dash-bars"></div></div>
+        <div class="grid" style="align-content:start">
+          <div class="card chart"><h3 id="trend-title">Last 12 months</h3>
+            <div class="legend"><span><i style="background:var(--pos)"></i>Income</span><span><i style="background:var(--neg)"></i>Spending</span></div>
+            <div id="dash-trend"></div></div>
+          <div class="card"><h3>Top merchants</h3><div id="dash-merchants"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-transactions">
+    <h2>Transactions</h2>
+    <p class="sub">Change a category and you'll be offered a rule so future imports get it right automatically.</p>
+    <div class="row" style="margin-bottom:12px">
+      <input type="search" id="tx-search" placeholder="Search transactions…" title="Searches merchant names, bank descriptions and notes" style="width:220px">
+      <div class="msel" id="f-month"></div>
+      <div class="msel" id="f-cat"></div>
+      <div class="msel" id="f-merchant"></div>
+      <div class="msel" id="f-account"></div>
+      <label class="tiny muted" style="display:flex;gap:5px;align-items:center"><input type="checkbox" id="tx-ai-only"> AI-categorized only</label>
+      <span class="chip" id="tx-range-chip" style="display:none"><span id="tx-range-name"></span><button title="Clear date range" id="tx-range-clear">×</button></span>
+      <div class="spacer"></div>
+      <button class="btn small ai-btn ai-run" id="tx-ai" style="display:none"></button>
+      <span class="muted" id="tx-count"></span>
+      <button class="btn danger small" id="tx-delete-sel" style="display:none">Delete selected</button>
+    </div>
+    <div class="card review dups" id="dups" style="display:none">
+      <div class="review-head" id="dups-head">
+        <span class="caret">▾</span><h3 id="dups-title">Possible duplicates</h3>
+        <span class="muted tiny" id="dups-sub"></span>
+        <div class="spacer"></div>
+        <button class="btn small" id="dups-all">Delete all extras</button>
+      </div>
+      <div class="review-body"><table class="fixed"><colgroup><col><col style="width:104px"><col style="width:180px"><col style="width:220px"><col style="width:140px"></colgroup><tbody id="dups-body"></tbody></table></div>
+    </div>
+    <div class="card review" id="review" style="display:none">
+      <div class="review-head" id="review-head">
+        <span class="caret">▾</span><h3 id="review-title">Needs review</h3>
+        <span class="muted tiny" id="review-sub"></span>
+        <div class="spacer"></div>
+        <button class="btn small ai-btn" id="review-ai">✦ Let AI categorize these</button>
+      </div>
+      <div class="review-body"><table class="fixed"><colgroup><col><col style="width:170px"><col style="width:190px"><col style="width:110px"><col style="width:210px"></colgroup><tbody id="review-body"></tbody></table></div>
+    </div>
+    <div class="card" style="padding:0"><div class="scroll" style="max-height:70vh;border:0">
+      <table class="fixed"><colgroup><col style="width:36px"><col style="width:104px"><col><col style="width:250px"><col style="width:180px"><col style="width:120px"></colgroup>
+        <thead><tr>
+          <th><input type="checkbox" id="tx-all"></th>
+          <th class="sortable" data-sort="date">Date</th>
+          <th class="sortable" data-sort="merchant">Merchant</th>
+          <th>Category</th>
+          <th class="sortable" data-sort="account">Account</th>
+          <th class="sortable num" data-sort="amount">Amount</th>
+        </tr></thead>
+        <tbody id="tx-body"></tbody>
+      </table>
+      <div id="tx-more" class="muted tiny" style="display:none;padding:12px 16px;text-align:center"></div>
+    </div></div>
+  </section>
+
+  <section class="view" id="view-merchants">
+    <h2>Merchants</h2>
+    <p class="sub">Every place you've spent money. Set a merchant's category and every transaction from it (past and future) goes there. Rename or merge merchants the bank spells differently.</p>
+    <div class="row" style="margin-bottom:12px">
+      <input type="search" id="m-search" placeholder="Search merchants…" style="width:260px">
+      <div class="spacer"></div>
+      <span class="muted" id="m-count"></span>
+    </div>
+    <div class="card" style="padding:0"><div class="scroll" style="max-height:72vh;border:0">
+      <table class="fixed"><colgroup><col><col style="width:250px"><col style="width:110px"><col style="width:100px"><col style="width:115px"><col style="width:105px"><col style="width:225px"></colgroup>
+        <thead><tr><th class="sortable" data-table="m" data-sort="name">Merchant</th><th class="sortable" data-table="m" data-sort="category">Category</th><th class="sortable num" data-table="m" data-sort="count">Transactions</th><th class="sortable num" data-table="m" data-sort="median" title="The middle amount of its charges: what a typical visit costs">Typical</th><th class="sortable num" data-table="m" data-sort="spent">Spent</th><th class="sortable" data-table="m" data-sort="last">Last seen</th><th></th></tr></thead>
+        <tbody id="m-body"></tbody>
+      </table>
+    </div></div>
+  </section>
+
+  <section class="view" id="view-recurring">
+    <div class="row" style="align-items:flex-start"><h2 style="margin-bottom:0">Recurring</h2><div class="spacer"></div>
+      <button class="btn" id="rec-add" title="Something that recurs but wasn't found, e.g. a yearly bill paid on different dates">+ Mark a merchant as recurring</button></div>
+    <p class="sub">Subscriptions, bills and memberships, found automatically from charges that repeat weekly, every 2 weeks, monthly, every 2, 3, 4 or 6 months, or yearly. Hide anything that isn't really recurring, and mark anything it missed.</p>
+    <div class="grid kpis" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+      <div class="card kpi"><div class="label">Active</div><div class="value" id="r-count">—</div><div class="hint">recurring charges</div></div>
+      <div class="card kpi"><div class="label">Per month</div><div class="value" id="r-month">—</div><div class="hint">yearly and weekly charges averaged to a month</div></div>
+      <div class="card kpi"><div class="label">Per year</div><div class="value" id="r-year">—</div><div class="hint">if everything keeps going</div></div>
+    </div>
+    <div class="card" style="padding:0">
+      <table class="fixed rec-table"><colgroup><col><col style="width:140px"><col style="width:140px"><col style="width:110px"><col style="width:120px"><col style="width:150px"><col style="width:170px"><col style="width:70px"></colgroup>
+        <thead><tr><th class="sortable" data-table="r" data-sort="name">Merchant</th><th class="sortable" data-table="r" data-sort="freq">How often</th><th class="sortable num" data-table="r" data-sort="amount">Amount</th><th class="sortable num" data-table="r" data-sort="monthly">Per month</th><th class="sortable" data-table="r" data-sort="started" title="When these charges began, as far back as your imports go">Started</th><th class="sortable" data-table="r" data-sort="next">Next expected</th><th class="sortable" data-table="r" data-sort="category">Category</th><th></th></tr></thead>
+        <tbody id="r-body"></tbody>
+        <tbody id="r-stopped-body"></tbody>
+        <tbody id="r-hidden-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="view" id="view-import">
+    <h2>Import statements</h2>
+    <p class="sub">Files are read by the app on this computer and saved to your local database.</p>
+    <label class="drop" id="drop">
+      <strong>Drop CSV or PDF files here</strong>
+      <span class="muted">or click to choose files · you can select several at once</span>
+      <input type="file" id="file-input" accept=".csv,.pdf,.txt" multiple hidden>
+      <div class="banks">
+        <span class="pill">Chase checking</span><span class="pill">Chase credit card</span><span class="pill">Bank of America</span>
+        <span class="pill">Wells Fargo</span><span class="pill">Capital One</span><span class="pill">American Express</span>
+        <span class="pill">Discover</span><span class="pill">Citi</span><span class="pill">Most other bank CSVs</span>
+      </div>
+    </label>
+    <div class="grid halves" style="margin-top:16px">
+      <div class="card">
+        <h3>Best: CSV</h3>
+        <p style="margin:0">In Chase, open an account → <em>Download account activity</em> (the down-arrow icon) → choose <strong>CSV</strong> and a date range. CSV is exact; PDF reading is a best guess, so you'll get a preview to check either way. Overlapping date ranges are fine: duplicates are skipped.</p>
+      </div>
+      <div class="card">
+        <h3>Import history</h3>
+        <div id="import-history" class="tiny"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-budgets">
+    <h2>Monthly budgets</h2>
+    <p class="sub">Set a monthly limit per category. Leave blank for no budget. The dashboard shows progress against these.</p>
+    <div class="card" style="padding:0">
+      <table class="fixed"><colgroup><col><col style="width:170px"><col style="width:140px"><col style="width:140px"><col style="width:130px"></colgroup>
+        <thead><tr><th class="sortable" data-table="b" data-sort="name">Category</th><th class="sortable num" data-table="b" data-sort="budget">Monthly budget</th><th class="sortable num" data-table="b" data-sort="spent" id="bud-month-h">This month</th><th class="sortable num" data-table="b" data-sort="avg">3-month avg</th><th class="sortable num" data-table="b" data-sort="left">Left</th></tr></thead>
+        <tbody id="bud-body"></tbody>
+        <tfoot><tr><td><strong>Total</strong></td><td class="num" id="bud-total"></td><td class="num" id="bud-total-spent"></td><td class="num" id="bud-total-avg"></td><td></td></tr></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <section class="view" id="view-rules">
+    <h2>Categories &amp; rules</h2>
+    <p class="sub">Rules run first: if a description contains the text, it gets that category. After that, built-in merchant matching and your bank's own categories are used.</p>
+    <div class="grid two">
+      <div class="card">
+        <h3>Your rules</h3>
+        <div class="row" style="margin-bottom:12px">
+          <input type="text" id="rule-match" placeholder="Description contains… e.g. KROGER" style="flex:1">
+          <select id="rule-cat"></select>
+          <button class="btn primary" id="rule-add">Add rule</button>
+        </div>
+        <div id="rules-list"></div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn" id="recat">Re-categorize everything</button>
+          <span class="muted tiny">Keeps categories you picked by hand.</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Categories</h3>
+        <div class="row" style="margin-bottom:12px">
+          <input type="text" id="cat-new" placeholder="New category name" style="flex:1">
+          <select id="cat-new-kind"><option value="expense">Spending</option><option value="income">Income</option><option value="transfer">Transfer (ignored)</option></select>
+          <button class="btn" id="cat-add">Add</button>
+        </div>
+        <div id="cats-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-data">
+    <h2>Accounts &amp; data</h2>
+    <p class="sub" id="db-path"></p>
+    <div class="grid two">
+      <div class="grid" style="align-content:start">
+      <div class="card">
+        <h3>Accounts</h3>
+        <div id="accounts-list"></div>
+      </div>
+      <div class="card" id="plaid-card">
+        <h3>Bank connections</h3>
+        <p style="margin-top:0" class="tiny muted">Download transactions straight from your bank through <a href="https://plaid.com" target="_blank" rel="noopener">Plaid</a> instead of importing files. You sign in to your bank in Plaid's window (for Chase, on chase.com), so your password never reaches this app. The connection is read-only: it can see transactions, not move money.</p>
+        <div id="plaid-body"></div>
+      </div>
+      </div>
+      <div class="grid" style="align-content:start">
+        <div class="card">
+          <h3>Local AI</h3>
+          <p style="margin-top:0">Suggests categories for anything the normal rules leave <em>Uncategorized</em>, using a model running in LM Studio on this computer. Nothing leaves your machine. Changes save automatically.</p>
+          <div class="field"><label>Server URL</label><div class="row" style="gap:6px"><input type="text" id="ai-url" style="flex:1"><button class="btn small" id="ai-test">Connect</button></div></div>
+          <div class="field"><label>Model</label><select id="ai-model"><option value="">First loaded model</option></select></div>
+          <div class="field"><label>Min confidence</label><div class="row" style="gap:6px"><input type="number" id="ai-conf" min="0" max="1" step="0.05" style="width:90px"><span class="muted tiny">less sure than this → left Uncategorized</span></div></div>
+          <div class="field"><label>When importing</label><label style="display:flex;gap:8px;align-items:center;color:inherit"><input type="checkbox" id="ai-auto"> Suggest categories in the import preview automatically</label></div>
+          <div class="row"><button class="btn ai-btn ai-run" id="ai-run-now">✦ Categorize existing uncategorized now</button></div>
+          <div class="status-line muted" id="ai-msg"></div>
+        </div>
+        <div class="card">
+          <h3>Backups</h3>
+          <p style="margin-top:0">The app backs up the database automatically once a day (keeps 14). You can also make one now.</p>
+          <div class="row"><button class="btn primary" id="backup-now">Back up now</button></div>
+          <div id="backup-list" class="tiny" style="margin-top:10px"></div>
+        </div>
+        <div class="card">
+          <h3>Export &amp; reset</h3>
+          <div class="row"><a class="btn" href="/api/export.csv">Export transactions CSV</a>
+          <button class="btn danger" id="wipe">Delete all data…</button></div>
+        </div>
+      </div>
+    </div>
+    <p class="muted tiny" id="stats" style="margin-top:16px"></p>
+  </section>
+</main>
+
+<div class="modal-bg" id="preview-bg">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="row"><h2 id="pv-title" style="margin:0">Review import</h2><span class="muted" id="pv-step" style="font-size:16px"></span><div class="spacer"></div><span class="pill" id="pv-format"></span></div>
+      <p class="sub" id="pv-sub" style="margin:6px 0 0"></p>
+    </div>
+    <div class="modal-body">
+      <div id="pv-notice"></div>
+      <div id="pv-ai" class="notice" style="display:none;background:var(--accent-soft);color:var(--accent)"></div>
+      <div class="row" style="margin-bottom:12px">
+        <label>Account <input type="text" id="pv-account" list="acct-list" style="width:240px"></label>
+        <datalist id="acct-list"></datalist>
+        <div class="spacer"></div>
+        <button class="btn small ai-btn" id="pv-ai-btn" style="display:none"></button>
+        <button class="btn small" id="pv-flip" title="Use if spending shows as positive/green">Flip +/− signs</button>
+      </div>
+      <div class="scroll"><table class="fixed"><colgroup><col style="width:36px"><col style="width:104px"><col><col style="width:260px"><col style="width:120px"></colgroup>
+        <thead><tr><th><input type="checkbox" id="pv-all" checked></th><th class="sortable" data-table="pv" data-sort="date">Date</th><th class="sortable" data-table="pv" data-sort="description">Description</th><th class="sortable" data-table="pv" data-sort="category">Category</th><th class="sortable num" data-table="pv" data-sort="amount">Amount</th></tr></thead>
+        <tbody id="pv-body"></tbody>
+      </table></div>
+    </div>
+    <div class="modal-foot">
+      <span class="muted" id="pv-summary"></span>
+      <div class="spacer"></div>
+      <button class="btn" id="pv-cancel">Skip this file</button>
+      <button class="btn primary" id="pv-ok">Import</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg dialog-bg" id="dlg-bg"><div class="dialog" role="dialog" aria-modal="true"><p id="dlg-msg"></p><div id="dlg-extra" style="display:none;margin:-6px 0 16px"></div><div class="row" id="dlg-actions"></div></div></div>
+<div class="toast" id="toast"><span id="toast-msg"></span><span id="toast-actions" class="row"></span></div>
+
+<script>
+"use strict";
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'});
+const fmt0=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
+const money=c=>fmt.format(c/100), money0=c=>fmt0.format(c/100);
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const monthLabel=ym=>{const[y,m]=ym.split('-');return MONTHS[+m-1]+' '+y;};
+const pad=n=>String(n).padStart(2,'0');
+function shiftMonth(ym,d){let[y,m]=ym.split('-').map(Number);m+=d;while(m<1){m+=12;y--;}while(m>12){m-=12;y++;}return `${y}-${pad(m)}`;}
+async function api(path,opts={}){
+  const o={...opts};
+  if(o.json!==undefined){o.method=o.method||'POST';o.headers={'Content-Type':'application/json'};o.body=JSON.stringify(o.json);delete o.json;}
+  let r;
+  try{ r=await fetch(path,o); }catch(e){ throw new Error('Can’t reach the app. Is the Budget window (start.bat) still open?'); }
+  let d=null; try{d=await r.json();}catch(e){}
+  if(!r.ok) throw new Error((d&&d.error)||('Request failed ('+r.status+')'));
+  return d;
+}
+async function safe(fn){ try{ return await fn(); }catch(e){ console.error(e); toast(e.message); } }
+
+let META={categories:[],accounts:[],months:[]};
+const cat=id=>META.categories.find(c=>c.id===id)||{name:'?',color:'#999'};
+const catOptions=sel=>META.categories.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}</option>`).join('');
+async function loadMeta(){ META=await api('/api/meta'); }
+
+/* ---------- navigation ---------- */
+let view='dashboard';
+function go(v,opts={}){
+  if(v!=='import') closePreview();                  // leaving Import closes the review and stops the AI
+  view=v;
+  if(!opts.fromURL) syncURL(true);
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+v));
+  refresh(); window.scrollTo(0,0);
+}
+$('#nav').addEventListener('click',e=>{ if(e.target.dataset.view) go(e.target.dataset.view); });
+async function refresh(){ await safe(async()=>{ await loadMeta(); await ({dashboard:renderDash,transactions:renderTx,merchants:renderMerchants,recurring:renderRecurring,import:renderImports,budgets:renderBudgets,rules:renderRules,data:renderData})[view](); }); }
+
+/* ---------- URL state: page + filters live in the address bar ---------- */
+const VIEWS=['dashboard','transactions','merchants','recurring','import','budgets','rules','data'];
+function stateToParams(){
+  const p=new URLSearchParams();
+  if(view!=='dashboard') p.set('view',view);
+  if(view==='dashboard'){
+    if(dashPeriod.startsWith('m:')) p.set('month',dashPeriod.slice(2));
+    else if(dashPeriod.startsWith('y:')) p.set('period',dashPeriod.slice(2));
+    else if(dashPeriod==='custom'&&dashFrom&&dashTo){ p.set('from',dashFrom); p.set('to',dashTo); }
+    else if(dashPeriod) p.set('period',dashPeriod);
+    if(dashAccount) p.set('account',dashAccount);
+  }
+  if(view==='budgets'&&dashMonth&&dashPeriod) p.set('month',dashMonth);
+  if(view==='transactions'){
+    normTxF();
+    if(txF.month.length) p.set('month',txF.month.join(','));
+    if(txF.category_id.length) p.set('category',txF.category_id.join(','));
+    if(txF.account_id.length) p.set('account',txF.account_id.join(','));
+    if(txF.q) p.set('q',txF.q);
+    if(txF.source) p.set('ai','1');
+    if(txF.merchant.length) p.set('merchant',txF.merchant.join(','));
+    if(txF.from) p.set('from',txF.from);
+    if(txF.to) p.set('to',txF.to);
+    if(txSort.k!=='date'||txSort.dir!=='desc'){ p.set('sort',txSort.k); p.set('dir',txSort.dir); }
+  }
+  if(view==='merchants'){ if(mF.q) p.set('q',mF.q); if(mF.sort!=='spent'||mF.dir!=='desc'){ p.set('sort',mF.sort); p.set('dir',mF.dir); } }
+  return p;
+}
+// Clicks that act like links (a merchant name, a month bar) add a Back step; dropdowns, search and sorting just update the address.
+let pushNext=false;
+const asNavigation=()=>{ pushNext=true; };
+function syncURL(push=false){
+  push=push||pushNext; pushNext=false;
+  const qs=stateToParams().toString();
+  const url=location.pathname+(qs?'?'+qs.replace(/%2C/g,','):'');
+  if(url===location.pathname+location.search) return;
+  try{ history[push?'pushState':'replaceState'](null,'',url); }catch(e){}
+}
+function loadFromURL(){
+  const p=new URLSearchParams(location.search);
+  const v=VIEWS.includes(p.get('view'))?p.get('view'):'dashboard';
+  const month=/^\d{4}-\d{2}$/.test(p.get('month')||'')?p.get('month'):'';
+  const isDate=x=>/^\d{4}-\d{2}-\d{2}$/.test(x||'');
+  if(v==='budgets'){ dashMonth=month; }
+  if(v==='dashboard'){
+    dashAccount=p.get('account')||''; const per=p.get('period')||'';
+    if(month){ dashPeriod='m:'+month; }
+    else if(isDate(p.get('from'))&&isDate(p.get('to'))){ dashPeriod='custom'; dashFrom=p.get('from'); dashTo=p.get('to'); }
+    else if(/^\d{4}$/.test(per)) dashPeriod='y:'+per;
+    else dashPeriod=['3m','6m','12m','ytd','all'].includes(per)?per:'';
+  }
+  if(v==='transactions'){
+    const list=k=>(p.get(k)||'').split(',').map(x=>x.trim()).filter(Boolean);
+    txF={q:p.get('q')||'',month:list('month').filter(m=>/^\d{4}-\d{2}$/.test(m)),category_id:list('category'),account_id:list('account'),
+         source:p.get('ai')==='1'?'ai':'',merchant:list('merchant'),
+         from:isDate(p.get('from'))?p.get('from'):'',to:isDate(p.get('to'))?p.get('to'):''};
+    const k=p.get('sort'); txSort=['date','description','merchant','amount','account'].includes(k)?{k,dir:p.get('dir')==='asc'?'asc':'desc'}:{k:'date',dir:'desc'};
+    selected.clear();
+  }
+  if(v==='merchants'){ const k=p.get('sort'); const ok=['spent','count','median','last','name','category'].includes(k);
+    mF={q:p.get('q')||'',sort:ok?k:'spent',dir:ok?(p.get('dir')==='asc'?'asc':'desc'):'desc'}; }
+  return v;
+}
+window.addEventListener('popstate',()=>{ closeDialog(); go(loadFromURL(),{fromURL:true}); });
+
+/* ---------- dashboard ---------- */
+/* Period: '' = latest month · 'm:YYYY-MM' · '3m' '6m' '12m' 'ytd' 'all' · 'y:YYYY' · 'custom' (dashFrom..dashTo) */
+let dashMonth='', dashAccount='', dashMonthChosen=false, dashPeriod='', dashFrom='', dashTo='';
+const lastDay=ym=>{const [y,m]=ym.split('-').map(Number);return `${ym}-${pad(new Date(y,m,0).getDate())}`;};
+function periodRange(p){                      // -> {start,end} (inclusive) or null for "latest month"
+  const ms=META.months; if(!ms.length) return null;
+  const latest=ms[0], oldest=ms[ms.length-1];
+  if(p.startsWith('m:')) return {start:p.slice(2)+'-01', end:lastDay(p.slice(2))};
+  if(p.startsWith('y:')) return {start:p.slice(2)+'-01-01', end:p.slice(2)+'-12-31'};
+  const back=n=>({start:shiftMonth(latest,-(n-1))+'-01', end:lastDay(latest)});
+  if(p==='3m') return back(3); if(p==='6m') return back(6); if(p==='12m') return back(12);
+  if(p==='ytd') return {start:latest.slice(0,4)+'-01-01', end:lastDay(latest)};
+  if(p==='all') return {start:oldest+'-01', end:lastDay(latest)};
+  if(p==='custom'&&dashFrom&&dashTo) return {start:dashFrom, end:dashTo};
+  return null;
+}
+const fmtDate=d=>{const [y,m,dd]=d.split('-');return `${MONTHS[+m-1]} ${+dd}, ${y}`;};
+function rangeLabel(st,en){
+  const [sy,sm,sd]=st.split('-'), [ey,em]=en.split('-');
+  if(sd==='01'&&en===lastDay(ey+'-'+em)){
+    if(st.slice(0,7)===en.slice(0,7)) return monthLabel(st.slice(0,7));
+    if(sm==='01'&&em==='12'&&sy===ey) return sy;
+    return sy===ey?`${MONTHS[+sm-1]} – ${MONTHS[+em-1]} ${ey}`:`${MONTHS[+sm-1]} ${sy} – ${MONTHS[+em-1]} ${ey}`;
+  }
+  return `${fmtDate(st)} – ${fmtDate(en)}`;
+}
+function periodOptions(sel){
+  const all=[...META.months].sort().reverse(), years=[...new Set(all.map(m=>m.slice(0,4)))];
+  // Only the last 12 months are listed (older ones: pick the year or a custom range). A month
+  // you're already looking at stays listed even if it's older.
+  const d=new Date(), cutoff=new Date(d.getFullYear(),d.getMonth()-11,1), cut=`${cutoff.getFullYear()}-${String(cutoff.getMonth()+1).padStart(2,'0')}`;
+  let ms=all.filter(m=>m>=cut); if(!ms.length) ms=all.slice(0,12);
+  if(sel&&sel.startsWith('m:')&&!ms.includes(sel.slice(2))) ms=[...ms,sel.slice(2)].sort().reverse();
+  const o=(v,t)=>`<option value="${v}" ${v===sel?'selected':''}>${t}</option>`;
+  return `<optgroup label="Month">${ms.map(m=>o('m:'+m,monthLabel(m))).join('')}</optgroup>
+    <optgroup label="Range">${o('3m','Last 3 months')}${o('6m','Last 6 months')}${o('12m','Last 12 months')}${o('ytd','Year to date')}${o('all','All time')}</optgroup>
+    <optgroup label="Year">${years.map(y=>o('y:'+y,y)).join('')}</optgroup>
+    <optgroup label="Other">${o('custom','Custom range…')}</optgroup>`;
+}
+async function renderDash(){
+  const q=new URLSearchParams(), r=periodRange(dashPeriod);
+  if(r){ q.set('start',r.start); q.set('end',r.end); }
+  if(dashAccount) q.set('account_id',dashAccount);
+  const s=await api('/api/summary?'+q);
+  const has=!s.empty;
+  $('#dash-empty').style.display=has?'none':'block'; $('#dash-content').style.display=has?'block':'none';
+  $('#dash-period').style.display=$('#dash-account').style.display=has||dashAccount?'':'none';
+  $('#dash-custom').style.display=dashPeriod==='custom'&&(has||dashAccount)?'':'none';
+  $('#dash-account').innerHTML=`<option value="">All accounts</option>`+META.accounts.map(a=>`<option value="${a.id}" ${String(a.id)===String(dashAccount)?'selected':''}>${esc(a.name)}</option>`).join('');
+  if(!has){ $('#dash-title').textContent='Overview'; $('#dash-sub').textContent=''; syncURL(); return; }
+  dashMonth=s.month||'';                     // Budgets page follows a single chosen month
+  dashRange={start:s.start,end:s.end};
+  syncURL();
+  $('#dash-period').innerHTML=periodOptions(dashPeriod||('m:'+s.end.slice(0,7)));
+  if(dashPeriod==='custom'){ $('#dash-from').value=s.start; $('#dash-to').value=s.end; }
+  $('#dash-title').textContent=rangeLabel(s.start,s.end);
+  const acctName=dashAccount?(META.accounts.find(a=>String(a.id)===String(dashAccount))||{}).name:'all accounts';
+  $('#dash-sub').textContent=`${plural(s.tx_count,'transaction')} · ${acctName}`;
+  $('#trend-title').textContent=s.trend.every(t=>t.in_period)?'By month':'Last 12 months';
+  $('#k-income').textContent=money0(s.income_cents); $('#k-spend').textContent=money0(s.spend_cents);
+  const net=s.income_cents-s.spend_cents; $('#k-net').textContent=money0(net); $('#k-net').className='value '+(net<0?'neg':'pos');
+  const vs=s.n_months===1?MONTHS[+s.prev_start.slice(5,7)-1]:s.n_months?`previous ${s.n_months} months`:'previous period';
+  const delta=(a,b)=>b&&dashPeriod!=='all'?`${a>=b?'▲':'▼'} ${money0(Math.abs(a-b))} vs ${vs}`:'';
+  $('#k-income-h').textContent=delta(s.income_cents,s.prev_income_cents);
+  $('#k-spend-h').textContent=delta(s.spend_cents,s.prev_spend_cents);
+  {const left=s.total_budget_cents-s.budgeted_spend_cents;
+  const bm=s.budget_months, per=bm===1&&s.n_months===1?'':Number.isInteger(bm)?` (${bm} month${bm===1?'':'s'})`:' (this period)';
+  $('#k-net-h').textContent=s.total_budget_cents?(left>=0?`${money0(left)} left in budgets${per}`:`${money0(-left)} over budget${per}`):'income minus spending';}
+  $('#k-uncat').textContent=s.uncategorized; $('#k-uncat').style.color=s.uncategorized?'var(--warn)':'';
+  aiButtons();
+
+  const max=Math.max(1,...s.by_category.map(r=>Math.max(r.spent_cents,r.budget_cents||0)));
+  $('#dash-bars').innerHTML=s.by_category.length?s.by_category.map(r=>{
+    const b=r.budget_cents||0, over=b&&r.spent_cents>b;
+    return `<div class="bar-row" data-cat="${r.category_id}">
+      <div class="bar-label"><span class="dot" style="background:${r.color}"></span>${esc(r.name)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(0,r.spent_cents)/max*100}%;background:${over?'var(--neg)':r.color}"></div>${b?`<div class="bar-budget" style="left:${b/max*100}%" title="Budget ${money0(b)}"></div>`:''}</div>
+      <div class="bar-amt"><span class="${over?'over':''}">${money0(r.spent_cents)}</span>${b?` <small>/ ${money0(b)}</small>`:''}</div></div>`;
+  }).join(''):'<div class="muted">No spending in this period.</div>';
+
+  const tr=s.trend, W=420,H=160,pl=34,pb=18,pt=6;
+  const mx=Math.max(100,...tr.map(x=>Math.max(x.income_cents,x.spend_cents)))/100;
+  const nice=niceMax(mx), step=(W-pl)/tr.length, bw=Math.max(3,step/2-3);
+  const y=v=>pt+(H-pt-pb)*(1-Math.max(0,v)/nice);
+  let svg=`<svg viewBox="0 0 ${W} ${H}">`;
+  for(let g=0;g<=2;g++){const v=nice*g/2;svg+=`<line x1="${pl}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl-4}" y="${y(v)+3}" text-anchor="end">${v>=1000?'$'+(v/1000).toFixed(v%1000?1:0)+'k':'$'+v}</text>`;}
+  const every=tr.length<=12?1:tr.length<=24?3:6;
+  tr.forEach((x,i)=>{const x0=pl+i*step+step/2-bw-1, inc=x.income_cents/100, sp=x.spend_cents/100, cur=x.in_period;
+    svg+=`<rect class="t-band" data-i="${i}" x="${pl+i*step+1}" y="${pt}" width="${step-2}" height="${H-pt-pb}" rx="4"/><g class="tm" data-i="${i}">`;
+    svg+=`<rect x="${x0}" y="${y(inc)}" width="${bw}" height="${H-pb-y(inc)}" rx="2" fill="var(--pos)" opacity="${cur?1:.55}"/>`;
+    svg+=`<rect x="${x0+bw+2}" y="${y(sp)}" width="${bw}" height="${H-pb-y(sp)}" rx="2" fill="var(--neg)" opacity="${cur?1:.55}"/></g>`;
+    if(i%every===0){ const mo=MONTHS[+x.month.slice(5)-1];
+      svg+=`<text x="${pl+i*step+step/2}" y="${H-4}" text-anchor="middle" style="${cur?'fill:var(--ink);font-weight:600':''}">${every===1?mo[0]:mo+(x.month.endsWith('-01')?" '"+x.month.slice(2,4):'')}</text>`; }});
+  $('#dash-trend').innerHTML=svg+'</svg><div class="t-tip"></div>';
+  trendData={tr,W,pl,step};
+  $('#dash-merchants').innerHTML=s.top_merchants.length?s.top_merchants.map(m=>`<div class="list-row"><a href="#" class="mlink" data-mid="${m.merchant_id||''}" data-name="${esc(m.merchant)}">${esc(m.merchant)}</a><span class="num">${money0(m.spent_cents)}</span></div>`).join(''):'<div class="muted">—</div>';
+}
+let trendData=null;
+function trendIndex(e){ const svg=$('#dash-trend svg'); if(!svg||!trendData) return -1;
+  const b=svg.getBoundingClientRect(), vx=(e.clientX-b.left)*trendData.W/b.width, i=Math.floor((vx-trendData.pl)/trendData.step);
+  return i>=0&&i<trendData.tr.length?i:-1; }
+function trendHover(i){ const box=$('#dash-trend'), tip=box.querySelector('.t-tip'); if(!tip) return;
+  box.classList.toggle('hover',i>=0);
+  box.querySelectorAll('.tm,.t-band').forEach(g=>g.classList.toggle('on',+g.dataset.i===i));
+  if(i<0){ tip.classList.remove('show'); return; }
+  const x=trendData.tr[i], net=x.income_cents-x.spend_cents, svg=box.querySelector('svg'), sc=svg.clientWidth/trendData.W;
+  tip.innerHTML=`<b>${monthLabel(x.month)}</b>
+    <div><i style="background:var(--pos)"></i>Income<span>${money0(x.income_cents)}</span></div>
+    <div><i style="background:var(--neg)"></i>Spending<span>${money0(x.spend_cents)}</span></div>
+    <div class="t-net">Net<span class="${net<0?'over':'pos'}">${net<0?'−':'+'}${money0(Math.abs(net))}</span></div>
+    ${dashPeriod===('m:'+x.month)?'':'<div class="t-hint">Click to view this month</div>'}`;
+  tip.classList.add('show');
+  const cx=(trendData.pl+(i+.5)*trendData.step)*sc, w=tip.offsetWidth, gap=10*sc+8;
+  let left=cx+gap; if(left+w>box.clientWidth) left=cx-gap-w; tip.style.left=Math.max(0,left)+'px'; }
+$('#dash-trend').addEventListener('mousemove',e=>trendHover(trendIndex(e)));
+$('#dash-trend').addEventListener('mouseleave',()=>trendHover(-1));
+$('#dash-trend').addEventListener('click',e=>{ const i=trendIndex(e); if(i<0) return; const m='m:'+trendData.tr[i].month;
+  if(dashPeriod===m) return; dashPeriod=m; trendHover(-1); asNavigation(); safe(renderDash); });
+function niceMax(v){const p=Math.pow(10,Math.floor(Math.log10(v)));for(const m of[1,2,2.5,5,10])if(m*p>=v)return m*p;return 10*p;}
+$('#dash-merchants').addEventListener('click',e=>{const a=e.target.closest('a.mlink');if(!a||!a.dataset.mid)return;e.preventDefault();
+  txF=txForPeriod({merchant:String(a.dataset.mid)}); txMerchantName=a.dataset.name; txSort={k:'date',dir:'desc'}; go('transactions');});
+let dashRange={start:'',end:''};
+$('#dash-period').addEventListener('change',e=>{ dashPeriod=e.target.value;
+  if(dashPeriod==='custom'&&!(dashFrom&&dashTo)){ dashFrom=dashRange.start; dashTo=dashRange.end; }
+  safe(renderDash); });
+['#dash-from','#dash-to'].forEach(id=>$(id).addEventListener('change',()=>{ const f=$('#dash-from').value, t=$('#dash-to').value;
+  if(f&&t){ dashFrom=f<=t?f:t; dashTo=f<=t?t:f; safe(renderDash); } }));
+$('#dash-account').addEventListener('change',e=>{dashAccount=e.target.value;safe(renderDash);});
+function txForPeriod(extra){ const single=dashRange.start&&dashRange.start.endsWith('-01')&&dashRange.end===lastDay(dashRange.start.slice(0,7));
+  return {q:'',category_id:'',account_id:dashAccount,source:'',merchant:'',month:single?dashRange.start.slice(0,7):'',
+          from:single?'':dashRange.start,to:single?'':dashRange.end,...extra}; }
+$('#dash-bars').addEventListener('click',e=>{const r=e.target.closest('.bar-row');if(!r)return;txF=txForPeriod({category_id:r.dataset.cat});txSort={k:'date',dir:'desc'};go('transactions');});
+// Income / Spending cards open the transactions behind them: every category of that kind, same period and account
+['income','expense'].forEach(kind=>$(kind==='income'?'#k-income-card':'#k-spend-card').addEventListener('click',()=>{
+  const ids=META.categories.filter(c=>c.kind===kind).map(c=>String(c.id));
+  txF=txForPeriod({category_id:ids}); txSort={k:kind==='income'?'amount':'date',dir:'desc'}; go('transactions'); }));
+$('#k-uncat-card').addEventListener('click',()=>{const u=META.categories.find(c=>c.name==='Uncategorized');txF=txForPeriod({category_id:String(u.id)});go('transactions');});
+
+/* ---------- multi-select dropdown ---------- */
+// A button that opens a checkbox list. items: [{value,label,color?,sub?}], selected: array of values.
+const squash=t=>String(t||'').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');   // search ignores punctuation and spaces
+function MultiSelect(el,{noun,plural:pl,search=false,onChange}){
+  el.innerHTML=`<button type="button" class="msel-btn"></button><button type="button" class="msel-x" title="Clear this filter" aria-label="Clear ${pl} filter">×</button><div class="msel-pop">${search?'<input type="search" class="msel-q" placeholder="Search…">':''}<div class="msel-list"></div>
+    <div class="msel-foot"><span class="msel-n"></span><button type="button" class="btn small msel-clear">Clear</button></div></div>`;
+  const btn=el.querySelector('.msel-btn'), list=el.querySelector('.msel-list'), q=el.querySelector('.msel-q');
+  let items=[], sel=new Set();
+  const label=()=>{ const chosen=items.filter(i=>sel.has(String(i.value)));
+    const n=sel.size; btn.classList.toggle('on',n>0); el.classList.toggle('has',n>0);
+    btn.textContent=!n?`All ${pl}`:chosen.length?chosen[0].label+(n>1?` +${n-1}`:''):`${n} ${n===1?noun:pl}`;
+    btn.title=chosen.map(i=>i.label).join(', '); el.querySelector('.msel-n').textContent=n?`${n} selected`:''; };
+  const draw=()=>{ const f=squash(q&&q.value);
+    const shown=items.filter(i=>!f||squash(i.label+' '+(i.search||'')).includes(f));
+    // selected first, so they're easy to untick
+    shown.sort((x,y)=>(sel.has(String(y.value))-sel.has(String(x.value))));
+    list.innerHTML=shown.length?shown.map(i=>`<label><input type="checkbox" value="${esc(i.value)}" ${sel.has(String(i.value))?'checked':''}>${i.color?`<span class="dot" style="background:${i.color};margin:0"></span>`:''}<span style="overflow:hidden;text-overflow:ellipsis">${esc(i.label)}</span>${i.sub?`<span class="sub">${esc(i.sub)}</span>`:''}</label>`).join('')
+      :'<div class="muted tiny" style="padding:6px">Nothing matches.</div>'; };
+  btn.addEventListener('click',()=>{ const open=!el.classList.contains('open'); closeAllMsel(); if(open){ el.classList.add('open'); draw(); if(q){ q.value=''; draw(); q.focus(); } } });
+  list.addEventListener('change',e=>{ const v=e.target.value; e.target.checked?sel.add(v):sel.delete(v); label(); onChange([...sel]); });
+  el.querySelector('.msel-clear').addEventListener('click',()=>{ sel.clear(); label(); draw(); onChange([]); });
+  el.querySelector('.msel-x').addEventListener('click',e=>{ e.stopPropagation(); sel.clear(); label(); if(el.classList.contains('open')) draw(); onChange([]); });
+  if(q) q.addEventListener('input',draw);
+  return { set(newItems,selected){ items=newItems; sel=new Set((selected||[]).map(String)); label(); if(el.classList.contains('open')) draw(); } };
+}
+function closeAllMsel(){ document.querySelectorAll('.msel.open').forEach(m=>m.classList.remove('open')); }
+document.addEventListener('click',e=>{ if(!e.target.closest('.msel')) closeAllMsel(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeAllMsel(); });
+
+/* ---------- transactions ---------- */
+let txMerchantName='';   // kept for older callers; the Merchant filter shows names now
+let txF={q:'',month:[],category_id:[],account_id:[],source:'',merchant:[],from:'',to:''}, txSort={k:'date',dir:'desc'}, selected=new Set(), txTimer=null;
+const LIST_KEYS=['month','category_id','account_id','merchant'];
+function normTxF(){            // accept single values from older code paths
+  for(const k of LIST_KEYS){ const v=txF[k]; txF[k]=Array.isArray(v)?v.map(String).filter(Boolean):(v?String(v).split(',').filter(Boolean):[]); }
+}
+let txMerchants=[];
+const fMonth=MultiSelect($('#f-month'),{noun:'month',plural:'months',search:true,onChange:v=>{txF.month=v;if(v.length){txF.from='';txF.to='';}loadTx();}});
+const fCat=MultiSelect($('#f-cat'),{noun:'category',plural:'categories',search:true,onChange:v=>{txF.category_id=v;loadTx();}});
+const fMerch=MultiSelect($('#f-merchant'),{noun:'merchant',plural:'merchants',search:true,onChange:v=>{txF.merchant=v;loadTx();}});
+const fAcct=MultiSelect($('#f-account'),{noun:'account',plural:'accounts',onChange:v=>{txF.account_id=v;loadTx();}});
+async function renderTx(){
+  normTxF();
+  txMerchants=(await api('/api/merchants')).items;
+  fMonth.set(META.months.map(m=>({value:m,label:monthLabel(m),
+    search:`${m} ${new Date(+m.slice(0,4),+m.slice(5)-1,1).toLocaleString('en-US',{month:'long'})} ${+m.slice(5)}/${m.slice(0,4)}`})),txF.month);
+  fCat.set(META.categories.map(c=>({value:c.id,label:c.name,color:c.color,sub:c.tx_count||''})),txF.category_id);
+  fMerch.set([...txMerchants].sort((a,b)=>a.name.localeCompare(b.name)).map(m=>({value:m.id,label:m.name,sub:m.tx_count||''})),txF.merchant);
+  fAcct.set(META.accounts.map(a=>({value:a.id,label:a.name})),txF.account_id);
+  if(document.activeElement!==$('#tx-search')) $('#tx-search').value=txF.q;
+  renderReview(); safe(renderDups);
+  $('#tx-ai-only').checked=!!txF.source;
+  aiButtons();
+  await loadTx();
+}
+// The list loads 200 rows at a time; more are fetched as you scroll near the bottom.
+const TX_PAGE=200;
+let txItems=[], txTotal=0, txQuery='', txGen=0, txLoadingMore=false;
+function txRow(t, filtered){
+  return `<tr>
+    <td><input type="checkbox" class="tx-sel" data-id="${t.id}" ${selected.has(t.id)?'checked':''}></td>
+    <td class="date">${t.date}</td>
+    <td class="desc tx-m" title="${esc(t.description)}">${t.merchant_id?`<a href="#" class="mlink tx-mlink" data-mid="${t.merchant_id}" title="${filtered.has(String(t.merchant_id))?'Stop filtering by':'Filter by'} ${esc(t.merchant)}  ·  ${esc(t.description)}">${esc(t.merchant)}</a>`:esc(t.description)}<button class="tx-x" title="Show the description from the bank">▸</button>${t.note?` <span class="pill">${esc(t.note)}</span>`:''}<div class="tx-orig">${esc(t.description)}</div></td>
+    <td style="white-space:nowrap"><span class="dot" style="background:${cat(t.category_id).color}"></span><select class="tx-cat" data-id="${t.id}">${catOptions(t.category_id)}</select>${t.category_source==='ai'?'<span class="pill ai" title="Chosen by local AI. Change it to confirm or correct.">AI</span>':t.category_source==='learned'?'<span class="pill ai" title="Matched to how you categorized this merchant before">learned</span>':''}</td>
+    <td class="muted tiny clip" title="${esc(t.account)}">${esc(t.account)}</td>
+    <td class="num ${t.amount_cents<0?'':'pos'}">${money(t.amount_cents)}</td></tr>`;
+}
+function txQueryString(){
+  const q=new URLSearchParams({sort:txSort.k,dir:txSort.dir});
+  for(const[k,v] of Object.entries(txF)){ const val=Array.isArray(v)?v.join(','):v; if(val) q.set(k==='merchant'?'merchant_id':k,val); }
+  return q.toString();
+}
+function txFooter(){
+  const more=txItems.length<txTotal;
+  $('#tx-more').style.display=more?'':'none';
+  $('#tx-more').textContent=more?`Showing ${txItems.length} of ${txTotal} · loading more as you scroll…`:'';
+}
+function updateTxSelection(){
+  $('#tx-delete-sel').style.display=selected.size?'':'none';
+  $('#tx-delete-sel').textContent=`Delete ${selected.size} selected`;
+}
+async function loadTx(){                 // just the list (filters stay open while you tick boxes)
+  normTxF();
+  $('#tx-range-chip').style.display=txF.from||txF.to?'':'none';
+  $('#tx-range-name').textContent=txF.from&&txF.to?rangeLabel(txF.from,txF.to):txF.from?'From '+fmtDate(txF.from):txF.to?'Until '+fmtDate(txF.to):'';
+  syncURL();
+  const qs=txQueryString();
+  // Same filters (e.g. after changing a category): reload as many rows as are on screen, so you
+  // keep your place. New filters or sort: start again from the first 200.
+  const n=qs===txQuery?Math.max(TX_PAGE,txItems.length):TX_PAGE;
+  const gen=++txGen;
+  const d=await api(`/api/transactions?${qs}&limit=${n}&offset=0`);
+  if(gen!==txGen) return;                // a newer request has started
+  if(qs!==txQuery) txScroller().scrollTop=0;
+  txQuery=qs; txItems=d.items; txTotal=d.total;
+  $('#tx-count').textContent=`${d.total} shown · net ${money(d.net_cents)}`;
+  const filtered=new Set(txF.merchant);
+  $('#tx-body').innerHTML=d.items.length?d.items.map(t=>txRow(t,filtered)).join('')
+    :`<tr><td colspan="6" class="empty">No transactions match.</td></tr>`;
+  txFooter(); updateTxSelection();
+  maybeLoadMoreTx();
+}
+async function loadMoreTx(){
+  if(txLoadingMore||txItems.length>=txTotal) return;
+  txLoadingMore=true; const gen=txGen;
+  try{
+    const d=await api(`/api/transactions?${txQuery}&limit=${TX_PAGE}&offset=${txItems.length}`);
+    if(gen!==txGen) return;
+    const filtered=new Set(txF.merchant);
+    txItems=txItems.concat(d.items); txTotal=d.total;
+    $('#tx-body').insertAdjacentHTML('beforeend',d.items.map(t=>txRow(t,filtered)).join(''));
+    txFooter(); updateTxSelection();
+  }finally{ txLoadingMore=false; }
+  maybeLoadMoreTx();
+}
+// The list scrolls inside its own box; fetch the next page when you're within ~1.5 boxes of the end.
+const txScroller=()=>$('#tx-more').parentElement;
+function maybeLoadMoreTx(){
+  if(view!=='transactions'||txItems.length>=txTotal) return;
+  const el=txScroller();
+  if(el.scrollTop+el.clientHeight*2.5>=el.scrollHeight) safe(loadMoreTx);
+}
+txScroller().addEventListener('scroll',maybeLoadMoreTx,{passive:true});
+$('#tx-search').addEventListener('input',e=>{txF.q=e.target.value;clearTimeout(txTimer);txTimer=setTimeout(()=>safe(loadTx),200);});
+$('#tx-ai-only').addEventListener('change',e=>{txF.source=e.target.checked?'ai':'';safe(loadTx);});
+$('#tx-body').addEventListener('click',e=>{
+  const x=e.target.closest('.tx-x'); if(x){ x.closest('td').classList.toggle('open'); return; }
+  const a=e.target.closest('a.tx-mlink'); if(!a) return; e.preventDefault();
+  normTxF(); const id=String(a.dataset.mid);
+  txF.merchant=txF.merchant.includes(id)?txF.merchant.filter(x=>x!==id):[...txF.merchant,id];   // click again to un-filter
+  asNavigation();
+  fMerch.set([...txMerchants].sort((p,q)=>p.name.localeCompare(q.name)).map(m=>({value:m.id,label:m.name,sub:m.tx_count||''})),txF.merchant);
+  safe(loadTx);
+});
+$('#tx-range-clear').addEventListener('click',()=>{txF.from='';txF.to='';safe(loadTx);});
+document.querySelectorAll('#view-transactions th.sortable').forEach(th=>th.addEventListener('click',()=>{const k=th.dataset.sort;txSort={k,dir:txSort.k===k?(txSort.dir==='asc'?'desc':'asc'):(k==='date'||k==='amount'?'desc':'asc')};safe(loadTx);}));
+$('#tx-all').addEventListener('change',e=>{document.querySelectorAll('.tx-sel').forEach(c=>{c.checked=e.target.checked;const id=+c.dataset.id;e.target.checked?selected.add(id):selected.delete(id);});updateTxSelection();});
+$('#tx-body').addEventListener('change',e=>safe(async()=>{
+  const id=+e.target.dataset.id; if(!id) return;
+  if(e.target.classList.contains('tx-sel')){ e.target.checked?selected.add(id):selected.delete(id); return updateTxSelection(); }
+  if(e.target.classList.contains('tx-cat')){
+    const cid=+e.target.value, c=cat(cid);
+    const r=await api('/api/transactions/'+id,{method:'PATCH',json:{category_id:cid}});
+    e.target.previousElementSibling.style.background=c.color;
+    if(r.merchant_id) dialog(`Use ${c.name} for every transaction from “${r.merchant}”?`+(r.similar?` That changes ${plural(r.similar,'other transaction')} too, and future imports follow.`:' Future imports will follow.'),[
+      {label:'Just this one',fn:()=>{}},
+      {label:`Yes, for all of “${r.merchant}”`,primary:true,fn:()=>safe(async()=>{const x=await api('/api/merchants/'+r.merchant_id,{method:'PATCH',json:{category_id:cid}});
+        toast(`“${r.merchant}” → ${c.name}.`+(x.changed>1?` ${plural(x.changed,'transaction')} updated.`:''));refresh();})}]);
+  }
+}));
+$('#tx-delete-sel').addEventListener('click',()=>{const n=selected.size;
+  toast(`Delete ${n} transaction${n>1?'s':''}?`,[{label:'Delete',primary:true,danger:true,fn:()=>safe(async()=>{await api('/api/transactions/delete',{json:{ids:[...selected]}});selected.clear();toast(`Deleted ${n}.`);refresh();})},{label:'Cancel',fn:hideToast}],10000);});
+
+/* ---------- needs-review panel (uncategorized, grouped by merchant) ---------- */
+let reviewGroups=[];
+/* ---------- possible duplicates ---------- */
+let dupGroups=[];
+const dupsCollapsed=()=>{ try{return localStorage.getItem('budget.dupsCollapsed')==='1';}catch(e){return false;} };
+async function renderDups(){
+  const d=await api('/api/duplicates'); dupGroups=d.groups;
+  const box=$('#dups'); box.style.display=d.groups.length?'':'none'; if(!d.groups.length) return;
+  box.classList.toggle('collapsed',dupsCollapsed());
+  $('#dups-title').textContent=`Possible duplicates · ${d.total}`;
+  $('#dups-sub').textContent=`${plural(d.groups.length,'pair')} that look imported twice · delete the extra, or mark them as different`;
+  $('#dups-all').textContent=`Delete ${d.total===1?'the extra':'all '+d.total+' extras'}`;
+  $('#dups-body').innerHTML=d.groups.map((g,gi)=>`<tr class="dup-head"><td colspan="4">
+      ${g.merchant_id?`<a href="#" class="mlink" data-gi="${gi}" title="Show this merchant's transactions">${esc(g.merchant||'')}</a>`:esc(g.merchant||'')}
+      <span class="num ${g.amount_cents<0?'':'pos'}" style="margin-left:8px">${money(g.amount_cents)}</span>
+      <span class="muted tiny" style="margin-left:8px">${esc(g.reason)}</span></td>
+      <td style="text-align:right;white-space:nowrap"><button class="btn small" data-dup-keep="${gi}" title="These are separate transactions; stop suggesting them">Not duplicates</button></td></tr>`
+    +g.transactions.map(t=>{const keep=t.id===g.keep_id;
+      return `<tr class="dup-row ${keep?'keep':'extra'}">
+      <td class="clip" title="${esc(t.description)}">${esc(t.description)}${t.note?` <span class="pill">${esc(t.note)}</span>`:''}</td>
+      <td class="date">${t.date}</td>
+      <td class="muted tiny clip" title="${esc(t.account||'')}">${esc(t.account||'')}</td>
+      <td class="muted tiny clip" title="${esc(t.filename||'')}${t.imported_at?' · imported '+t.imported_at.slice(0,16):''}">${t.filename?esc(t.filename):'—'}${t.imported_at?`<br>imported ${t.imported_at.slice(0,10)}`:''}</td>
+      <td style="text-align:right">${keep?'<span class="muted tiny" title="Suggested to keep: imported first, or has your category or note">keep</span> ':''}<button class="btn small ${keep?'':'danger'}" data-dup-del="${t.id}">Delete</button></td></tr>`;}).join('')).join('');
+}
+$('#dups-head').addEventListener('click',e=>{ if(e.target.closest('button')) return;
+  const c=!dupsCollapsed(); try{localStorage.setItem('budget.dupsCollapsed',c?'1':'0');}catch(_){}
+  $('#dups').classList.toggle('collapsed',c); });
+$('#dups-body').addEventListener('click',e=>{
+  const a=e.target.closest('a.mlink');
+  if(a){ e.preventDefault(); const g=dupGroups[+a.dataset.gi];
+    txF={...txF,merchant:[String(g.merchant_id)],category_id:[],source:''}; asNavigation(); safe(renderTx); return; }
+  const del=e.target.closest('[data-dup-del]'), keep=e.target.closest('[data-dup-keep]');
+  if(del) safe(async()=>{ await api('/api/transactions/delete',{json:{ids:[+del.dataset.dupDel]}}); toast('Deleted.'); refresh(); });
+  if(keep) safe(async()=>{ await api('/api/duplicates/dismiss',{json:{ids:dupGroups[+keep.dataset.dupKeep].ids}});
+    toast("Marked as separate transactions. They won't be suggested again."); renderDups(); });
+});
+$('#dups-all').addEventListener('click',e=>{ e.stopPropagation();
+  const extra=dupGroups.flatMap(g=>g.ids.filter(id=>id!==g.keep_id));
+  dialog(`Delete ${plural(extra.length,'transaction')}, keeping one of each pair (the one marked “keep”)? A backup is made first.`,[
+    {label:'Cancel',fn:()=>{}},
+    {label:'Delete '+extra.length,primary:true,danger:true,fn:()=>safe(async()=>{
+      await api('/api/backup',{json:{}});
+      await api('/api/transactions/delete',{json:{ids:extra}}); toast(`Deleted ${plural(extra.length,'duplicate')}.`); refresh(); })}]);
+});
+
+function reviewCollapsed(){ try{return localStorage.getItem('budget.reviewCollapsed')==='1';}catch(e){return false;} }
+async function renderReview(){
+  const d=await api('/api/uncategorized'); reviewGroups=d.groups;
+  const box=$('#review'); box.style.display=d.total?'':'none'; if(!d.total) return;
+  box.classList.toggle('collapsed',reviewCollapsed());
+  $('#review-title').textContent=`Needs review · ${d.total} uncategorized`;
+  $('#review-sub').textContent=`${d.groups.length} merchant${d.groups.length===1?'':'s'} · pick a category to file them`;
+  $('#review-ai').style.display=aiPoll?'none':'';
+  $('#review-body').innerHTML=d.groups.map((g,i)=>`<tr>
+    <td><a href="#" class="mlink" data-gi="${i}" title="Show these in the list below">${esc(g.merchant)}</a>
+      <div class="ex" title="${esc(g.examples.join('\n'))}">${esc(g.examples[0])}${g.examples.length>1?` +${g.ids.length-1} more`:''}</div></td>
+    <td class="muted tiny" style="white-space:nowrap">${g.ids.length} transaction${g.ids.length>1?'s':''}<br>${g.first_date===g.last_date?g.last_date:g.first_date+' → '+g.last_date}</td>
+    <td class="muted tiny clip" title="${esc(g.accounts.join(', '))}">${esc(g.accounts.join(', '))}</td>
+    <td class="num ${g.total_cents<0?'':'pos'}">${money(g.total_cents)}</td>
+    <td style="text-align:right"><select class="review-cat" data-gi="${i}"><option value="" selected disabled>Choose category…</option>${META.categories.filter(c=>c.name!=='Uncategorized').map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select></td>
+  </tr>`).join('');
+}
+$('#review-head').addEventListener('click',e=>{ if(e.target.closest('button')) return;
+  const c=!reviewCollapsed(); try{localStorage.setItem('budget.reviewCollapsed',c?'1':'0');}catch(_){}
+  $('#review').classList.toggle('collapsed',c); });
+$('#review-ai').addEventListener('click',e=>{ e.stopPropagation(); safe(runAI); });
+$('#review-body').addEventListener('click',e=>{ const a=e.target.closest('a.mlink'); if(!a) return; e.preventDefault();
+  const g=reviewGroups[+a.dataset.gi]; if(!g.merchant_id) return;
+  txF={...txF,merchant:String(g.merchant_id),category_id:'',source:''}; txMerchantName=g.merchant; asNavigation(); safe(renderTx); });
+$('#review-body').addEventListener('change',e=>{ if(!e.target.classList.contains('review-cat')) return;
+  const g=reviewGroups[+e.target.dataset.gi], c=cat(+e.target.value), n=g.ids.length;
+  dialog(`File ${n===1?'this transaction':'these '+n+' transactions'} from “${g.merchant}” under ${c.name}?`,[
+    {label:'Cancel',fn:()=>safe(renderReview)},
+    {label:n===1?'Just this one':`Just these ${n}`,fn:()=>safe(async()=>{
+      await api('/api/transactions/categorize',{json:{ids:g.ids,category_id:c.id}}); toast(`${n} filed under ${c.name}.`); refresh(); })},
+    {label:`Always for “${g.merchant}”`,primary:true,fn:()=>safe(async()=>{
+      const r=await api('/api/merchants/'+g.merchant_id,{method:'PATCH',json:{category_id:c.id}});
+      toast(`“${g.merchant}” → ${c.name}. ${plural(r.changed,'transaction')} updated; future imports follow.`); refresh(); })}],
+    ()=>safe(renderReview));
+});
+
+/* ---------- click-to-sort for tables sorted in the browser ---------- */
+const TEXT_KEYS=new Set(['name','category','description']);
+const tableSort={r:{k:'monthly',dir:'desc'}, m:{k:'spent',dir:'desc'}, b:{k:null,dir:'asc'}, pv:{k:null,dir:'asc'}};
+function sortedBy(arr,get,dir){            // stable; empty values always last
+  return arr.map((x,i)=>[x,i]).sort((A,B)=>{const a=get(A[0]),b=get(B[0]);
+    const ea=a==null||a==='', eb=b==null||b==='';
+    if(ea||eb) return ea===eb?A[1]-B[1]:(ea?1:-1);
+    const c=typeof a==='string'?a.localeCompare(b,undefined,{sensitivity:'base',numeric:true}):a-b;
+    return (dir==='asc'?c:-c)||A[1]-B[1];}).map(p=>p[0]);
+}
+document.addEventListener('click',e=>{
+  const th=e.target.closest('th.sortable[data-table]'); if(!th) return;
+  const t=th.dataset.table, k=th.dataset.sort, st=tableSort[t];
+  tableSort[t]={k, dir: st.k===k ? (st.dir==='asc'?'desc':'asc') : (TEXT_KEYS.has(k)||k==='next'?'asc':'desc')};
+  if(t==='m'){ mF.sort=tableSort.m.k; mF.dir=tableSort.m.dir; renderMerchantRows(); syncURL(); }
+  if(t==='b') renderBudgetRows();
+  if(t==='r') renderRecurringRows();
+  if(t==='pv') renderPreview();
+});
+
+/* ---------- long lists: show 200 rows, add 200 more as you scroll ---------- */
+// For lists the browser already has in full (merchants, import preview): only the rows are drawn lazily.
+const LIST_PAGE=200;
+function lazyRows(tbody,items,rowFn,{empty='',sig=''}={}){
+  const st=tbody._lazy, same=st&&st.sig===sig;
+  const n=Math.min(items.length,Math.max(LIST_PAGE,same?st.shown:0));
+  tbody._lazy={items,rowFn,sig,shown:n,cols:tbody.closest('table').querySelectorAll('colgroup col').length||1};
+  const scroller=tbody.closest('.scroll');
+  if(!same&&scroller) scroller.scrollTop=0;
+  tbody.innerHTML=items.length?items.slice(0,n).map(rowFn).join('')+lazyFoot(tbody):empty;
+  if(scroller&&!scroller._lazyHooked){ scroller._lazyHooked=true;
+    scroller.addEventListener('scroll',()=>lazyMore(tbody),{passive:true}); }
+  lazyMore(tbody);
+}
+function lazyFoot(tbody){ const {items,shown,cols}=tbody._lazy;
+  return shown<items.length?`<tr class="lazy-more"><td colspan="${cols}" class="muted tiny" style="text-align:center;padding:12px">Showing ${shown} of ${items.length} · more as you scroll…</td></tr>`:''; }
+function lazyMore(tbody){
+  const st=tbody._lazy, sc=tbody.closest('.scroll'); if(!st||!sc||st.shown>=st.items.length) return;
+  if(sc.scrollTop+sc.clientHeight*2.5<sc.scrollHeight) return;
+  const from=st.shown; st.shown=Math.min(st.items.length,from+LIST_PAGE);
+  const foot=tbody.querySelector('tr.lazy-more'); if(foot) foot.remove();
+  tbody.insertAdjacentHTML('beforeend',st.items.slice(from,st.shown).map((x,k)=>st.rowFn(x,from+k)).join('')+lazyFoot(tbody));
+}
+
+/* ---------- recurring ---------- */
+let recItems=[], recShowHidden=false;
+const FREQ_DAYS={weekly:7,biweekly:14,monthly:30.44,bimonthly:60.88,quarterly:91.31,every4months:121.75,semiannual:182.63,yearly:365.25};
+async function renderRecurring(){
+  const d=await api('/api/recurring'); recItems=d.items;
+  $('#r-count').textContent=d.active_count; $('#r-month').textContent=money0(d.monthly_cents); $('#r-year').textContent=money0(d.yearly_cents);
+  renderRecurringRows();
+}
+function dueText(r){
+  if(!r.active) return `<span class="muted">was due ${fmtShort(r.next_date)}</span>`;
+  const n=r.days_until;
+  const note=n===0?'today':n===1?'tomorrow':n>0?`in ${n} days`
+    :r.late?`<span style="color:var(--warn)">${-n} days late</span>`
+    :`<span title="Your imports for this account only go up to ${fmtShort(r.imported_through)}. Import newer statements to check.">not imported yet</span>`;
+  return `${fmtShort(r.next_date)} <span class="muted tiny">${note}</span>`;
+}
+const fmtShort=d=>{const [,m,dd]=d.split('-');return `${MONTHS[+m-1]} ${+dd}`;};
+function recRow(r,i){
+  const c=cat(r.category_id);
+  return `<tr class="${r.active&&!r.dismissed?'':'rec-off'}">
+    <td class="clip" title="${esc(r.merchant)} · ${r.count} charges since ${fmtDate(r.first_date)}"><a href="#" class="mlink" data-ri="${i}">${esc(r.merchant)}</a> <span class="muted tiny">${r.count}×</span></td>
+    <td>${r.label}${r.parts>1?` <span class="muted tiny" title="${r.parts} charges in the last period">· ${r.parts} charges</span>`:''}${r.manual?' <span class="pill" title="You marked this as recurring">yours</span>':''}</td>
+    <td class="num">${money(r.amount_cents)}${r.varies?`<div class="muted tiny" title="Lowest and highest charge">${money0(r.min_cents)}–${money0(r.max_cents)}</div>`:''}</td>
+    <td class="num">${money0(r.monthly_cents)}</td>
+    <td class="date" title="First charge ${fmtDate(r.first_date)} · last ${fmtDate(r.last_date)}">${monthLabel(r.first_date.slice(0,7))}</td>
+    <td>${dueText(r)}</td>
+    <td class="clip"><span class="dot" style="background:${c.color}"></span>${esc(c.name)}</td>
+    <td style="text-align:right">${r.manual?`<button class="btn small rec-unmark" data-ri="${i}" title="Stop treating this as recurring">Remove</button>`
+      :`<button class="btn small rec-hide" data-ri="${i}" title="${r.dismissed?'Show this again':"Not recurring: hide it"}">${r.dismissed?'Show':'Hide'}</button>`}</td></tr>`;
+}
+function renderRecurringRows(){
+  const st=tableSort.r, G={name:r=>r.merchant,freq:r=>FREQ_DAYS[r.frequency],amount:r=>r.amount_cents,monthly:r=>r.monthly_cents,
+    started:r=>r.first_date,next:r=>r.next_date,category:r=>cat(r.category_id).name};
+  const idx=sortedBy(recItems.map((r,i)=>i),i=>G[st.k](recItems[i]),st.dir);
+  const pick=f=>idx.filter(i=>f(recItems[i]));
+  const act=pick(r=>r.active&&!r.dismissed), stop=pick(r=>!r.active&&!r.dismissed), hid=pick(r=>r.dismissed);
+  $('#r-body').innerHTML=act.length?act.map(i=>recRow(recItems[i],i)).join('')
+    :`<tr><td colspan="8" class="empty">${recItems.length?'No active recurring charges.':'Nothing recurring found yet. It needs a few months of history: import more statements.'}</td></tr>`;
+  $('#r-stopped-body').innerHTML=stop.length?`<tr class="rec-sec"><td colspan="8">Possibly stopped <span class="muted tiny">· no charge when the next one was due</span></td></tr>`+stop.map(i=>recRow(recItems[i],i)).join(''):'';
+  $('#r-hidden-body').innerHTML=hid.length?`<tr class="rec-sec"><td colspan="8"><a href="#" id="rec-toggle-hidden">${recShowHidden?'▾':'▸'} Hidden (${hid.length})</a></td></tr>`
+    +(recShowHidden?hid.map(i=>recRow(recItems[i],i)).join(''):''):'';
+}
+$('#view-recurring').addEventListener('click',e=>{
+  if(e.target.id==='rec-toggle-hidden'){ e.preventDefault(); recShowHidden=!recShowHidden; renderRecurringRows(); return; }
+  const a=e.target.closest('a.mlink[data-ri]');
+  if(a){ e.preventDefault(); const r=recItems[+a.dataset.ri]; filterByMerchant(r.merchant_id,r.merchant); return; }
+  const b=e.target.closest('.rec-hide');
+  if(b){ const r=recItems[+b.dataset.ri];
+    safe(async()=>{ await api('/api/recurring/dismissed',{method:'PUT',json:{key:r.key,dismissed:!r.dismissed}}); await renderRecurring(); }); }
+  const u=e.target.closest('.rec-unmark');
+  if(u){ const r=recItems[+u.dataset.ri];
+    safe(async()=>{ await api('/api/recurring/manual',{json:{merchant_id:r.merchant_id,frequency:r.frequency,remove:true}}); await renderRecurring(); }); }
+});
+$('#rec-add').addEventListener('click',()=>safe(async()=>{
+  const all=(await api('/api/merchants')).items.filter(m=>m.tx_count).sort((p,q)=>p.name.localeCompare(q.name));
+  const freqs=[['yearly','Yearly'],['semiannual','Every 6 months'],['every4months','Every 4 months'],['quarterly','Every 3 months'],['bimonthly','Every 2 months'],['monthly','Monthly'],['biweekly','Every 2 weeks'],['weekly','Weekly']];
+  dialog('Mark a merchant as recurring. Its amount is what it charged in the most recent period, so a yearly bill paid in two parts (or for two cars) counts both.',[
+    {label:'Cancel',fn:()=>{}},
+    {label:'Add',primary:true,fn:()=>safe(async()=>{
+      const v=$('#dlg-name').value.trim(), m=all.find(x=>x.name.toLowerCase()===v.toLowerCase());
+      if(!m){ toast(`No merchant called “${v}”.`); return; }
+      await api('/api/recurring/manual',{json:{merchant_id:m.id,frequency:$('#dlg-freq').value}});
+      toast(`“${m.name}” is now recurring.`); await renderRecurring(); })}],
+    null,`<input type="text" id="dlg-name" class="pick-in" autocomplete="off" placeholder="Type a merchant…" style="width:100%"><div id="dlg-pick" class="pick-list"></div>
+      <label class="tiny muted" style="display:flex;gap:8px;align-items:center;margin-top:10px">How often <select id="dlg-freq">${freqs.map(([v,t])=>`<option value="${v}">${t}</option>`).join('')}</select></label>`);
+  merchantPicker($('#dlg-name'),$('#dlg-pick'),all);
+}));
+
+/* ---------- merchants ---------- */
+let mF={q:'',sort:'spent',dir:'desc'}, mTimer=null, mItems=[];
+const plural=(n,w)=>`${n} ${w}${n===1?'':'s'}`;
+async function renderMerchants(){
+  syncURL();
+  if(document.activeElement!==$('#m-search')) $('#m-search').value=mF.q;
+  const d=await api('/api/merchants?'+new URLSearchParams({q:mF.q}));
+  mAll=d.items; renderMerchantRows();
+}
+let mAll=[];
+const M_GET={name:m=>m.name, count:m=>m.tx_count, spent:m=>m.spent_cents||null, median:m=>m.median_cents, last:m=>m.last_date,
+  category:m=>{const id=m.category_id!=null?m.category_id:m.usual_category_id; return id!=null?cat(id).name:null;}};
+function renderMerchantRows(){
+  tableSort.m={k:mF.sort,dir:mF.dir};
+  mItems=sortedBy(mAll, M_GET[mF.sort]||M_GET.spent, mF.dir);
+  $('#m-count').textContent=plural(mItems.length,'merchant');
+  lazyRows($('#m-body'),mItems,(m,i)=>{
+    const set=m.category_id!=null, shown=set?m.category_id:m.usual_category_id, c=cat(shown);
+    const mixed=m.n_categories>1;
+    return `<tr>
+    <td class="clip">${m.tx_count?`<a href="#" class="mlink" data-i="${i}" title="Show its transactions">${esc(m.name)}</a>`:`<span style="font-weight:550">${esc(m.name)}</span>`}
+      ${m.aliases.length?`<div class="m-aliases" title="${esc(m.aliases.join('\n'))}">also: ${esc(m.aliases.join(', '))}</div>`:''}</td>
+    <td style="white-space:nowrap"><span class="dot" style="background:${shown?c.color:'var(--line)'}"></span><select class="m-cat" data-i="${i}">
+      <option value="" ${set?'':'selected'}>Automatic</option>${catOptions(set?m.category_id:null)}</select>${
+      set&&m.category_source==='ai'?'<span class="pill ai" title="Chosen by local AI. Pick a category to confirm or change it.">AI</span>':''}${
+      !set&&shown?`<span class="auto-hint" title="No category set. Each transaction is categorized automatically.">${mixed?'mixed':esc(c.name)}</span>`:''}${
+      set&&mixed?'<span class="auto-hint" title="Some transactions were changed one by one">+ exceptions</span>':''}</td>
+    <td class="num">${m.tx_count}</td>
+    <td class="num muted" title="Median charge">${m.median_cents!=null?money(m.median_cents):'—'}</td>
+    <td class="num">${m.spent_cents?money(m.spent_cents):'<span class="muted">—</span>'}</td>
+    <td class="date">${m.last_date||'<span class="muted">—</span>'}</td>
+    <td class="m-actions"><button class="btn" data-act="rename" data-i="${i}">Rename</button> <button class="btn" data-act="merge" data-i="${i}">Merge…</button>${
+      m.n_variants>1?` <button class="btn" data-act="split" data-i="${i}" title="Different businesses ended up under one name? Split them up">Split…</button>`:''}${
+      m.tx_count?'':` <button class="btn danger" data-act="delete" data-i="${i}">Delete</button>`}</td></tr>`;},
+    {sig:[mF.q,mF.sort,mF.dir].join('|'),
+     empty:`<tr><td colspan="7" class="empty">${mF.q?'No merchants match.':'No merchants yet. Import a statement first.'}</td></tr>`});
+}
+// Split a merchant that lumps several businesses together (e.g. everything starting "CLEAR LAKE").
+async function splitMerchant(m){
+  const {groups}=await api(`/api/merchants/${m.id}/split`);
+  const rows=groups.map((g,k)=>`<tr>
+      <td class="clip" title="${esc(g.examples.join('\n'))}">${esc(g.examples[0])}${g.examples.length>1?`<div class="muted tiny clip">${esc(g.examples.slice(1).join(' · '))}</div>`:''}</td>
+      <td class="num muted tiny" style="white-space:nowrap">${g.count}× · ${money0(Math.abs(g.total_cents))}</td>
+      <td><input type="text" class="split-name" data-k="${k}" value="${esc(m.name)}" style="width:100%">
+        <a href="#" class="split-sug tiny" data-k="${k}" data-v="${esc(g.key)}" title="Use this name">→ ${esc(g.key)}</a></td></tr>`).join('');
+  dialog(`Split “${m.name}”. Give each group the merchant it really belongs to. Groups left as “${m.name}” stay; using another merchant's name moves them there. Future imports follow.`,[
+    {label:'Cancel',fn:()=>{}},
+    {label:'Split',primary:true,fn:()=>safe(async()=>{
+      const out=groups.map((g,k)=>({ids:g.ids,match:g.key,name:document.querySelector(`.split-name[data-k="${k}"]`).value.trim()}))
+        .filter(g=>g.name&&g.name.toLowerCase()!==m.name.toLowerCase());
+      if(!out.length) return;
+      const r=await api(`/api/merchants/${m.id}/split`,{json:{groups:out}});
+      toast(`Split “${m.name}”: ${plural(out.reduce((a,g)=>a+g.ids.length,0),'transaction')} moved to ${plural(r.merchants.length,'merchant')}.`); refresh(); })}],
+    null,`<div class="split-box"><table class="fixed"><colgroup><col><col style="width:110px"><col style="width:230px"></colgroup><tbody>${rows}</tbody></table></div>
+      <a href="#" id="split-all" class="tiny">Use the suggested name for every group</a>`);
+  $('#dlg-bg .dialog').classList.add('wide');
+}
+$('#dlg-extra').addEventListener('click',e=>{
+  const s=e.target.closest('.split-sug'); if(s){ e.preventDefault(); document.querySelector(`.split-name[data-k="${s.dataset.k}"]`).value=s.dataset.v; return; }
+  if(e.target.id==='split-all'){ e.preventDefault(); document.querySelectorAll('.split-sug').forEach(a=>document.querySelector(`.split-name[data-k="${a.dataset.k}"]`).value=a.dataset.v); }
+});
+// Type-ahead list of merchants under an input (the browser's own list doesn't refilter when you
+// edit the middle of the text). Matches anywhere, ignoring punctuation; ↑/↓ and Enter to pick.
+function merchantPicker(inp,box,items){
+  let shown=[], hi=-1;
+  const draw=()=>{
+    const f=squash(inp.value);
+    const hits=f?items.filter(x=>squash(x.name).includes(f)):items;
+    shown=hits.sort((a,b)=>(squash(b.name).startsWith(f)-squash(a.name).startsWith(f))||(b.tx_count-a.tx_count)).slice(0,50);
+    hi=shown.length&&f?0:-1;
+    box.innerHTML=shown.map((x,k)=>`<div class="pick-item${k===hi?' hi':''}" data-k="${k}"><span>${esc(x.name)}</span><span class="muted tiny">${plural(x.tx_count,'transaction')}</span></div>`).join('')
+      +(hits.length>shown.length?`<div class="muted tiny" style="padding:6px 10px">${hits.length-shown.length} more · keep typing</div>`:'')
+      +(f&&!hits.length?'<div class="muted tiny" style="padding:6px 10px">No merchant matches.</div>':'');
+  };
+  const mark=()=>box.querySelectorAll('.pick-item').forEach((d,k)=>d.classList.toggle('hi',k===hi));
+  inp.addEventListener('input',draw);
+  box.addEventListener('mousedown',e=>{ const d=e.target.closest('.pick-item'); if(!d) return; e.preventDefault();
+    inp.value=shown[+d.dataset.k].name; draw(); inp.focus(); });
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); if(!shown.length) return;
+      hi=(hi+(e.key==='ArrowDown'?1:-1)+shown.length)%shown.length; mark();
+      box.querySelector('.pick-item.hi')?.scrollIntoView({block:'nearest'}); }
+    if(e.key==='Enter'&&hi>=0&&shown[hi]&&inp.value!==shown[hi].name){ e.preventDefault(); e.stopImmediatePropagation(); inp.value=shown[hi].name; draw(); }
+  },true);
+  draw();
+}
+function filterByMerchant(id,name){ txF={q:'',month:'',category_id:'',account_id:'',source:'',merchant:String(id),from:'',to:''}; txMerchantName=name; txSort={k:'date',dir:'desc'}; go('transactions'); }
+$('#m-search').addEventListener('input',e=>{mF.q=e.target.value;clearTimeout(mTimer);mTimer=setTimeout(()=>safe(renderMerchants),200);});
+$('#m-body').addEventListener('click',e=>{
+  const a=e.target.closest('a.mlink'); if(a){ e.preventDefault(); const m=mItems[+a.dataset.i]; filterByMerchant(m.id,m.name); return; }
+  const b=e.target.closest('button[data-act]'); if(!b) return; const m=mItems[+b.dataset.i];
+  if(b.dataset.act==='rename') dialog(`Rename “${m.name}”`,[{label:'Cancel',fn:()=>{}},{label:'Rename',primary:true,fn:()=>safe(async()=>{
+      const v=$('#dlg-name').value.trim(); if(!v||v===m.name) return;
+      await api('/api/merchants/'+m.id,{method:'PATCH',json:{name:v}}); toast(`Renamed to “${v}”.`); refresh(); })}],
+    null,`<input type="text" id="dlg-name" value="${esc(m.name)}" style="width:100%">`);
+  if(b.dataset.act==='merge') safe(async()=>{
+    // all merchants, not just the ones your search is showing
+    const others=(await api('/api/merchants')).items.filter(x=>x.id!==m.id).sort((p,q)=>p.name.localeCompare(q.name));
+    dialog(`Merge “${m.name}” into another merchant. Its ${plural(m.tx_count,'transaction')} and bank names move over, and future imports follow.`,[
+      {label:'Cancel',fn:()=>{}},{label:'Merge',primary:true,fn:()=>safe(async()=>{
+        const v=$('#dlg-name').value.trim(), t=others.find(x=>x.name.toLowerCase()===v.toLowerCase());
+        if(!t){ toast(`No merchant called “${v}”.`); return; }
+        await api(`/api/merchants/${m.id}/merge`,{json:{into_id:t.id}}); toast(`Merged “${m.name}” into “${t.name}”.`); refresh(); })}],
+      null,`<input type="text" id="dlg-name" class="pick-in" autocomplete="off" placeholder="Type the merchant to merge into…" style="width:100%"><div id="dlg-pick" class="pick-list"></div>`);
+    merchantPicker($('#dlg-name'),$('#dlg-pick'),others);
+  });
+  if(b.dataset.act==='split') safe(()=>splitMerchant(m));
+  if(b.dataset.act==='delete') dialog(`Delete “${m.name}”? It has no transactions.`,[{label:'Cancel',fn:()=>{}},
+    {label:'Delete',primary:true,danger:true,fn:()=>safe(async()=>{ await api('/api/merchants/'+m.id,{method:'DELETE'}); refresh(); })}]);
+});
+$('#m-body').addEventListener('change',e=>{ if(!e.target.classList.contains('m-cat')) return;
+  const m=mItems[+e.target.dataset.i], v=e.target.value;
+  if(v===''){
+    dialog(`Go back to automatic categories for “${m.name}”? Each of its transactions will be categorized by rules, keywords and AI again.`,[
+      {label:'Cancel',fn:()=>{}},{label:'Use automatic',primary:true,fn:()=>safe(async()=>{
+        const r=await api('/api/merchants/'+m.id,{method:'PATCH',json:{category_id:null}}); toast(`“${m.name}” is automatic again. ${plural(r.changed,'transaction')} changed.`); refresh(); })}],
+      ()=>safe(renderMerchants));
+    return;
+  }
+  const c=cat(+v);
+  dialog(m.tx_count?`Put ${m.tx_count===1?'the transaction':'all '+m.tx_count+' transactions'} from “${m.name}” in ${c.name}? This includes any you changed one by one, and future imports will follow.`
+                   :`Put future transactions from “${m.name}” in ${c.name}?`,[
+    {label:'Cancel',fn:()=>{}},{label:`Use ${c.name}`,primary:true,fn:()=>safe(async()=>{
+      const r=await api('/api/merchants/'+m.id,{method:'PATCH',json:{category_id:+v}}); toast(`“${m.name}” → ${c.name}. ${plural(r.changed,'transaction')} updated.`); refresh(); })}],
+    ()=>safe(renderMerchants));
+});
+
+/* ---------- import ---------- */
+let queue=[], current=null;
+let pvIndex=0, pvTotal=0;   // "(2 of 9)" in the review window
+function queueForReview(items){
+  if(!items.length) return;
+  if(!current){ pvIndex=0; pvTotal=0; }
+  queue.push(...items); pvTotal+=items.length;
+  if(!current) nextPreview(); else updatePvStep();
+}
+function updatePvStep(){
+  $('#pv-step').textContent=pvTotal>1?`(${pvIndex} of ${pvTotal})`:'';
+  updatePvSummary&&current&&updatePvSummary();
+}
+async function handleFiles(files){
+  files=[...files]; const repeats=[], ready=[], failed=[];
+  for(const [i,f] of files.entries()){
+    if(files.length>1) toast(`Reading ${i+1} of ${files.length}: ${f.name}…`,[],60000);
+    try{ const fd=new FormData(); fd.append('file',f); const r=await api('/api/import/preview',{method:'POST',body:fd});
+      r.rows.forEach(x=>{x.include=!x.dup;x.manual=false;});
+      if(r.already_imported || (r.rows.length && r.rows.every(x=>x.dup))) repeats.push(r); else ready.push(r);
+    }catch(e){ failed.push(`${f.name}: ${e.message}`); }
+  }
+  if(files.length>1) hideToast();
+  queueForReview(ready);
+  // one summary dialog for files that were skipped or couldn't be read
+  const lines=[];
+  if(repeats.length){
+    const desc=r=>{const p=r.already_imported;return p?`${r.filename} (imported ${p.created_at.slice(0,10)} into ${p.account||'a deleted account'})`
+      :`${r.filename} (all ${r.rows.length} transactions already in ${r.account})`;};
+    lines.push(repeats.length===1?`Skipped ${desc(repeats[0])}. It's already imported.`
+      :`Skipped ${repeats.length} files that are already imported:\n• ${repeats.map(desc).join('\n• ')}`);
+  }
+  if(failed.length) lines.push((failed.length===1?"Couldn't read ":`Couldn't read ${failed.length} files:\n• `)+failed.join('\n• '));
+  if(lines.length) dialog(lines.join('\n\n'), repeats.length
+      ? [{label:'Review anyway',fn:()=>queueForReview(repeats)},{label:'OK',primary:true,fn:()=>{}}]
+      : [{label:'OK',primary:true,fn:()=>{}}]);
+}
+function nextPreview(){
+  cancelPreviewAI(current);                         // skipping or importing a file stops its AI work
+  current=queue.shift();
+  if(!current){ $('#preview-bg').classList.remove('show'); pvIndex=0; pvTotal=0; return; }
+  pvIndex++; tableSort.pv={k:null,dir:'asc'};
+  $('#pv-account').value=current.account||'';
+  $('#acct-list').innerHTML=META.accounts.map(a=>`<option value="${esc(a.name)}">`).join('');
+  $('#pv-format').textContent=current.format;
+  $('#pv-title').textContent='Review: '+current.filename;
+  $('#pv-step').textContent=pvTotal>1?`(${pvIndex} of ${pvTotal})`:'';
+  const prev=current.already_imported;
+  $('#pv-notice').innerHTML=(prev?`<div class="notice">You already imported this exact file on ${esc(prev.created_at.slice(0,10))} into ${esc(prev.account||'a deleted account')}. Rows already in that account are unchecked.</div>`:'')
+    +(current.notes||[]).map(n=>`<div class="notice">${esc(n)}</div>`).join('');
+  $('#pv-all').checked=true;
+  $('#pv-ai').style.display='none';
+  renderPreview(); $('#preview-bg').classList.add('show');
+  updatePvAIButton();
+  if(META.ai_auto && pvUncatIdx().length) safe(()=>aiPreview(current));
+}
+function renderPreview(){
+  const c=current.rows, dates=c.map(x=>x.date).sort();
+  $('#pv-sub').textContent=`${c.length} transactions found · ${dates.length?dates[0]+' to '+dates[dates.length-1]:''}`;
+  const PV_GET={date:t=>t.date, description:t=>t.description, amount:t=>t.amount_cents, category:t=>cat(t.category_id).name};
+  const st=tableSort.pv, order=c.map((t,i)=>i);
+  const shown=st.k?sortedBy(order,i=>PV_GET[st.k](c[i]),st.dir):order;
+  lazyRows($('#pv-body'),shown.map(i=>[c[i],i]),([t,i])=>`<tr class="${t.dup?'dup':''}">
+    <td><input type="checkbox" data-i="${i}" class="pv-inc" ${t.include?'checked':''}></td>
+    <td class="date">${t.date}</td>
+    <td class="desc" title="${esc(t.description)}">${esc(t.description)} ${t.dup?'<span class="pill">already imported</span>':''}</td>
+    <td style="white-space:nowrap"><select data-i="${i}" class="pv-cat">${catOptions(t.category_id)}</select>${aiPill(t)}</td>
+    <td class="num ${t.amount_cents<0?'neg':'pos'}">${money(t.amount_cents)}</td></tr>`,
+    {sig:[current.file_sha256||current.filename,pvIndex,st.k,st.dir].join('|')});
+  updatePvSummary();
+}
+function updatePvSummary(){
+  const inc=current.rows.filter(t=>t.include);
+  const out=inc.filter(t=>t.amount_cents<0).reduce((a,t)=>a-t.amount_cents,0), inn=inc.filter(t=>t.amount_cents>0).reduce((a,t)=>a+t.amount_cents,0);
+  const dups=current.rows.filter(t=>t.dup).length;
+  $('#pv-summary').textContent=`${inc.length} selected · ${money(inn)} in · ${money(out)} out`+(dups?` · ${dups} already imported`:'');
+  const more=queue.length>0;
+  $('#pv-ok').textContent=`Import ${inc.length}`+(more?' & next':''); $('#pv-ok').disabled=!inc.length;
+  $('#pv-cancel').textContent=more?'Skip this file':'Skip';
+}
+async function recheck(){
+  const r=await api('/api/import/recheck',{json:{account:$('#pv-account').value.trim(),rows:current.rows}});
+  current.rows=r.rows.map((x,i)=>({...current.rows[i],...x,include:x.dup?false:current.rows[i].include||current.rows[i].dup}));
+  renderPreview(); updatePvAIButton();
+}
+$('#pv-body').addEventListener('change',e=>{const i=e.target.dataset.i;if(i==null)return;const t=current.rows[i];
+  if(e.target.classList.contains('pv-inc')) t.include=e.target.checked;
+  if(e.target.classList.contains('pv-cat')){t.category_id=+e.target.value;t.manual=true;t.category_source='manual';const p=e.target.parentElement.querySelector('.pill.ai');if(p)p.remove();updatePvAIButton();}
+  updatePvSummary();});
+$('#pv-all').addEventListener('change',e=>{current.rows.forEach(t=>t.include=e.target.checked&&!t.dup);renderPreview();});
+$('#pv-flip').addEventListener('click',()=>{current.rows.forEach(t=>t.amount_cents=-t.amount_cents);safe(recheck);});
+$('#pv-account').addEventListener('change',()=>safe(recheck));
+$('#pv-cancel').addEventListener('click',nextPreview);
+$('#pv-ok').addEventListener('click',()=>safe(async()=>{
+  $('#pv-ok').disabled=true;
+  const rows=current.rows.filter(t=>t.include);
+  const r=await api('/api/import/commit',{json:{filename:current.filename,format:current.format,account:$('#pv-account').value.trim()||current.account,
+    institution:current.institution,account_type:current.account_type,file_sha256:current.file_sha256,rows}});
+  toast(`Imported ${r.inserted} into ${r.account}`+(r.skipped?` (${r.skipped} duplicates skipped)`:'')+'.');
+  nextPreview();
+  if(!current){ dashMonth=''; dashPeriod=''; go('dashboard'); }
+}).finally(()=>{$('#pv-ok').disabled=false;}));
+const drop=$('#drop');
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('hover');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('hover');}));
+drop.addEventListener('drop',e=>handleFiles([...e.dataTransfer.files]));
+$('#file-input').addEventListener('change',e=>{handleFiles([...e.target.files]);e.target.value='';});
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>{if(!drop.contains(e.target)){e.preventDefault();if(e.dataTransfer.files.length)handleFiles([...e.dataTransfer.files]);}});
+async function renderImports(){
+  const im=await api('/api/imports');
+  $('#import-history').innerHTML=im.length?im.slice(0,10).map(i=>`<div class="list-row"><span>${esc(i.filename||i.source)} <span class="muted">→ ${esc(i.account||'deleted account')}</span></span><span class="muted">${i.row_count}${i.skipped_count?` (+${i.skipped_count} dup)`:''} · ${i.created_at.slice(0,10)}</span></div>`).join(''):'<span class="muted">Nothing imported yet.</span>';
+}
+
+/* ---------- budgets ---------- */
+async function renderBudgets(){
+  syncURL();
+  const d=await api('/api/budgets'+(dashMonth?'?month='+dashMonth:''));
+  $('#bud-month-h').textContent=monthLabel(d.month);
+  budRows=d.rows; renderBudgetRows();
+}
+let budRows=[];
+const B_GET={name:r=>r.name, budget:r=>r.budget_cents, spent:r=>r.spent_cents||null, avg:r=>r.avg3_cents||null,
+  left:r=>r.budget_cents!=null?r.budget_cents-r.spent_cents:null};
+function renderBudgetRows(){
+  const st=tableSort.b, rows=st.k?sortedBy(budRows,B_GET[st.k],st.dir):budRows;
+  let tb=0,ts=0,ta=0;
+  $('#bud-body').innerHTML=rows.map(r=>{const b=r.budget_cents, left=b!=null?b-r.spent_cents:null; tb+=b||0; ts+=r.spent_cents; ta+=r.avg3_cents;
+    return `<tr><td class="clip"><span class="dot" style="background:${r.color}"></span>${esc(r.name)}</td>
+      <td class="num"><input type="number" min="0" step="10" class="bud-in" data-cat="${r.category_id}" value="${b!=null?b/100:''}" placeholder="—" style="width:110px;text-align:right"></td>
+      <td class="num">${r.spent_cents?money0(r.spent_cents):'<span class="muted">—</span>'}</td>
+      <td class="num muted">${r.avg3_cents?money0(r.avg3_cents):'—'}</td>
+      <td class="num ${left!=null&&left<0?'over':''}">${left==null?'':money0(left)}</td></tr>`;}).join('');
+  $('#bud-total').textContent=tb?money0(tb):'—'; $('#bud-total-spent').textContent=money0(ts); $('#bud-total-avg').textContent=money0(ta);
+}
+$('#bud-body').addEventListener('change',e=>{if(!e.target.classList.contains('bud-in'))return;const v=parseFloat(e.target.value);
+  safe(async()=>{await api('/api/budgets/'+e.target.dataset.cat,{method:'PUT',json:{monthly_cents:v>0?Math.round(v*100):null}});renderBudgets();});});
+
+/* ---------- rules & categories ---------- */
+const KIND={expense:'Spending',income:'Income',transfer:'Transfer (ignored)'};
+const PROTECTED=['Income','Transfers','Uncategorized'];
+async function renderRules(){
+  $('#rule-cat').innerHTML=catOptions();
+  const rules=await api('/api/rules');
+  $('#rules-list').innerHTML=rules.length?rules.map(r=>`<div class="list-row"><span><code>${esc(r.pattern)}</code> → <span class="dot" style="background:${r.color}"></span>${esc(r.category)} <span class="muted tiny">${r.matches} match${r.matches===1?'':'es'}</span></span><button class="btn small danger" data-del-rule="${r.id}">Remove</button></div>`).join('')
+    :'<div class="muted">No rules yet. They\'re created when you re-categorize a transaction, or add one here.</div>';
+  $('#cats-list').innerHTML=META.categories.map(c=>{const prot=PROTECTED.includes(c.name);
+    return `<div class="list-row" style="align-items:center">
+    <span class="row" style="gap:8px"><input type="color" class="color-input" data-cid="${c.id}" value="${c.color}"> ${esc(c.name)} <span class="muted tiny">${c.tx_count}</span></span>
+    <span class="row" style="gap:6px">${prot?`<span class="muted tiny">built-in</span>`:`<select class="cat-kind" data-cid="${c.id}" style="padding:2px 6px;font-size:12px">${Object.entries(KIND).map(([k,v])=>`<option value="${k}" ${k===c.kind?'selected':''}>${v}</option>`).join('')}</select><button class="btn small danger" data-del-cat="${c.id}" data-name="${esc(c.name)}">Remove</button>`}</span></div>`;}).join('');
+}
+$('#rule-add').addEventListener('click',()=>safe(async()=>{const p=$('#rule-match').value.trim();if(!p)return;
+  const r=await api('/api/rules',{json:{pattern:p,category_id:+$('#rule-cat').value}});$('#rule-match').value='';toast(`Rule added · ${r.changed} transaction${r.changed===1?'':'s'} updated.`);refresh();}));
+$('#rule-match').addEventListener('keydown',e=>{if(e.key==='Enter')$('#rule-add').click();});
+$('#rules-list').addEventListener('click',e=>{const id=e.target.dataset.delRule;if(!id)return;safe(async()=>{await api('/api/rules/'+id,{method:'DELETE'});refresh();});});
+$('#recat').addEventListener('click',()=>safe(async()=>{const r=await api('/api/recategorize',{json:{}});toast(`${r.changed} transaction${r.changed===1?'':'s'} re-categorized.`);refresh();}));
+$('#cat-add').addEventListener('click',()=>safe(async()=>{const n=$('#cat-new').value.trim();if(!n)return;await api('/api/categories',{json:{name:n,kind:$('#cat-new-kind').value}});$('#cat-new').value='';refresh();}));
+$('#cat-new').addEventListener('keydown',e=>{if(e.key==='Enter')$('#cat-add').click();});
+$('#cats-list').addEventListener('change',e=>{const id=e.target.dataset.cid;if(!id)return;
+  const json=e.target.classList.contains('cat-kind')?{kind:e.target.value}:{color:e.target.value};
+  safe(async()=>{await api('/api/categories/'+id,{method:'PATCH',json});refresh();});});
+$('#cats-list').addEventListener('click',e=>{const id=e.target.dataset.delCat;if(!id)return;const n=e.target.dataset.name;
+  toast(`Remove “${n}”? Its transactions become Uncategorized.`,[{label:'Remove',primary:true,danger:true,fn:()=>safe(async()=>{await api('/api/categories/'+id,{method:'DELETE'});refresh();})},{label:'Cancel',fn:hideToast}],10000);});
+
+/* ---------- accounts & data ---------- */
+async function renderData(){
+  renderAISettings(); safe(renderPlaid);
+  $('#db-path').textContent='Your database file: '+META.db_path;
+  $('#accounts-list').innerHTML=META.accounts.length?META.accounts.map(a=>`<div class="list-row" style="align-items:center">
+    <span><a href="#" class="mlink acct-link" data-acct="${a.id}" title="Show its transactions" style="font-weight:650">${esc(a.name)}</a>${a.plaid_item?' <span class="pill" title="Synced from your bank through Plaid">bank sync</span>':''} <span class="muted tiny">${a.tx_count} transactions${a.first_date?` · ${a.first_date} → ${a.last_date}`:''}</span></span>
+    <span class="row" style="gap:6px"><select class="acct-type" data-aid="${a.id}" style="padding:2px 6px;font-size:12px">${['checking','savings','credit','other'].map(t=>`<option ${t===a.type?'selected':''}>${t}</option>`).join('')}</select>
+    <button class="btn small" data-rename="${a.id}" data-name="${esc(a.name)}">Rename</button>
+    <button class="btn small danger" data-del-acct="${a.id}" data-name="${esc(a.name)}">Delete</button></span></div>`).join(''):'<div class="muted">No accounts yet. They\'re created when you import.</div>';
+  const b=await api('/api/backups');
+  $('#backup-list').innerHTML=b.length?b.slice(0,6).map(x=>`<div class="list-row"><span>${esc(x.name)}</span><span class="muted">${(x.size/1024).toFixed(0)} KB</span></div>`).join(''):'<span class="muted">No backups yet.</span>';
+  $('#stats').textContent=`${META.tx_total} transactions · ${META.accounts.length} accounts · ${META.rule_count} rules`;
+}
+$('#accounts-list').addEventListener('change',e=>{const id=e.target.dataset.aid;if(!id)return;safe(async()=>{await api('/api/accounts/'+id,{method:'PATCH',json:{type:e.target.value}});});});
+$('#accounts-list').addEventListener('click',e=>{
+  const link=e.target.closest('a.acct-link');
+  if(link){ e.preventDefault(); txF={q:'',month:[],category_id:[],account_id:[String(link.dataset.acct)],source:'',merchant:[],from:'',to:''};
+    txSort={k:'date',dir:'desc'}; go('transactions'); return; }
+  const rn=e.target.dataset.rename, del=e.target.dataset.delAcct, n=e.target.dataset.name;
+  if(rn){ const row=e.target.closest('.list-row'); const strong=row.querySelector('.acct-link');
+    strong.outerHTML=`<input type="text" value="${esc(n)}" class="acct-name" style="padding:3px 8px">`; const inp=row.querySelector('.acct-name'); inp.focus(); inp.select();
+    const done=()=>safe(async()=>{const v=inp.value.trim(); if(v&&v!==n) await api('/api/accounts/'+rn,{method:'PATCH',json:{name:v}}); refresh();});
+    inp.addEventListener('keydown',ev=>{if(ev.key==='Enter')inp.blur();if(ev.key==='Escape'){inp.value=n;inp.blur();}}); inp.addEventListener('blur',done,{once:true}); }
+  if(del) toast(`Delete “${n}” and all its transactions? (a backup is made first)`,[{label:'Delete',primary:true,danger:true,fn:()=>safe(async()=>{await api('/api/accounts/'+del,{method:'DELETE'});dashAccount='';refresh();})},{label:'Cancel',fn:hideToast}],10000);
+});
+$('#backup-now').addEventListener('click',()=>safe(async()=>{const r=await api('/api/backup',{json:{}});toast('Backup saved: '+r.name);renderData();}));
+$('#wipe').addEventListener('click',()=>dialog('Delete all transactions, accounts, rules and budgets? A backup is made first.',[{label:'Cancel',fn:()=>{}},
+  {label:'Delete everything',primary:true,danger:true,fn:()=>safe(async()=>{const r=await api('/api/wipe',{json:{confirm:'DELETE'}});dashAccount='';dashMonth='';dashPeriod='';toast('All data deleted. Backup kept: '+r.backup);refresh();})}]));
+
+/* ---------- local AI ---------- */
+let aiPoll=null;
+function aiButtons(){
+  const n=META.uncategorized||0, running=!!aiPoll;
+  $('#k-ai').style.display=n&&!running?'':'none';
+  $('#tx-ai').style.display='none';   // the Needs review panel has this button now
+  const rb=$('#review-ai'); if(rb) rb.style.display=n&&!running?'':'none';
+}
+async function runAI(){
+  await api('/api/ai/categorize',{json:{}});
+  watchAI();
+}
+function watchAI(){
+  if(aiPoll) return;
+  $('#ai-bar').classList.add('show'); aiButtons();
+  const tick=async()=>{
+    let st; try{ st=await api('/api/ai/status'); }catch(e){ st={running:false,error:e.message}; }
+    const pct=st.total?Math.round(st.done/st.total*100):5;
+    $('#ai-bar-text').textContent=st.total?`AI is categorizing: ${st.done} of ${st.total} merchants`:(st.phase||'AI is starting…')+'…';
+    $('#ai-bar-fill').style.width=pct+'%';
+    if(st.running){ aiPoll=setTimeout(tick,1000); return; }
+    aiPoll=null; $('#ai-bar').classList.remove('show');
+    if(st.error){ toast('AI categorization stopped: '+st.error,[{label:'Close',fn:()=>{}},{label:'AI settings',primary:true,fn:()=>go('data')}],15000); }
+    else{
+      const parts=[]; if(st.applied) parts.push(`${st.applied} categorized by AI`); if(st.learned) parts.push(`${st.learned} matched to your past choices`);
+      if(st.unsure) parts.push(`${st.unsure} left Uncategorized (not sure enough)`);
+      const msg=parts.length?parts.join(' · '):'Nothing left to categorize.';
+      toast(msg,(st.applied||st.learned)?[{label:'Close',fn:()=>{}},{label:'Review',primary:true,fn:()=>{txF={q:'',month:'',category_id:'',account_id:'',source:'ai',merchant:'',from:'',to:''};go('transactions');}}]:[],15000);
+    }
+    refresh();
+  };
+  aiPoll=setTimeout(tick,300);
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('.ai-run'); if(!b) return; e.stopPropagation(); safe(runAI); },true);
+
+async function renderAISettings(){
+  const s=await api('/api/ai/settings');
+  $('#ai-auto').checked=s.ai_auto==='1';
+  $('#ai-url').value=s.ai_base_url; $('#ai-conf').value=s.ai_min_confidence;
+  $('#ai-model').innerHTML=`<option value="">First loaded model</option>`+(s.ai_model?`<option selected>${esc(s.ai_model)}</option>`:'');
+  $('#ai-run-now').style.display=META.uncategorized?'':'none';
+  loadModels(true);
+}
+async function loadModels(quiet){
+  const msg=$('#ai-msg'), cur=$('#ai-model').value;
+  if(!quiet){ msg.className='status-line muted'; msg.textContent='Connecting…'; }
+  try{
+    const r=await api('/api/ai/models?base_url='+encodeURIComponent($('#ai-url').value.trim()));
+    $('#ai-model').innerHTML=`<option value="">First loaded model${r.models[0]?` (${esc(r.models[0])})`:''}</option>`+r.models.map(m=>`<option ${m===cur?'selected':''}>${esc(m)}</option>`).join('');
+    msg.className='status-line pos'; msg.textContent=r.models.length?`Connected · ${r.models.length} model${r.models.length>1?'s':''} available`:'Connected, but no models are available. Load one in LM Studio.';
+  }catch(e){ msg.className='status-line neg'; msg.textContent=e.message; }
+}
+$('#ai-test').addEventListener('click',()=>loadModels(false));
+async function saveAISettings(){
+  await safe(async()=>{
+    await api('/api/ai/settings',{method:'PUT',json:{ai_auto:$('#ai-auto').checked,
+      ai_base_url:$('#ai-url').value.trim(),ai_model:$('#ai-model').value,ai_min_confidence:$('#ai-conf').value}});
+    await loadMeta(); toast('AI settings saved.',[],1800);
+  });
+}
+['#ai-auto','#ai-model','#ai-conf'].forEach(id=>$(id).addEventListener('change',saveAISettings));
+$('#ai-url').addEventListener('change',async()=>{ await saveAISettings(); loadModels(false); });
+
+/* ---------- bank connections (Plaid) ---------- */
+let plaidState=null;
+async function renderPlaid(){
+  const p=plaidState=await api('/api/plaid');
+  const enc=p.encrypted?'<span class="muted tiny">🔒 Your Plaid secret and bank connections are stored encrypted with your Windows login.</span>'
+    :'<span class="tiny" style="color:var(--warn)">Secrets can only be encrypted on Windows; on this system they are stored obfuscated, not encrypted.</span>';
+  const keys=`<div class="field"><label>Client ID</label><input type="text" id="pl-id" value="${esc(p.client_id)}" autocomplete="off" style="width:100%"></div>
+    <div class="field"><label>Secret</label><input type="password" id="pl-secret" autocomplete="new-password" placeholder="${p.has_secret?'Saved. Type a new one to replace it':'Paste the secret'}" style="width:100%"></div>
+    <div class="field"><label>Environment</label><select id="pl-env"><option value="production" ${p.env==='production'?'selected':''}>Production (your real bank)</option><option value="sandbox" ${p.env==='sandbox'?'selected':''}>Sandbox (test banks only)</option></select></div>
+    <div class="row" style="gap:8px"><button class="btn ${p.has_secret?'':'primary'}" id="pl-save">Save keys</button>${enc}</div>`;
+  if(!p.has_secret||!p.client_id){
+    $('#plaid-body').innerHTML=`<ol class="tiny" style="padding-left:18px;margin:0 0 12px">
+        <li>Create a free account at <a href="https://dashboard.plaid.com/signup" target="_blank" rel="noopener">dashboard.plaid.com</a> (the free plan connects up to 10 banks).</li>
+        <li>Under <b>Developers → Keys</b>, copy your <b>client_id</b> and the <b>Production</b> secret (or the Sandbox one to try test data first).</li>
+        <li>Paste them here, then click <b>Connect a bank</b>.</li></ol>${keys}`;
+    return;
+  }
+  const items=p.items.map(it=>`<div class="list-row" style="align-items:flex-start">
+      <span><b>${esc(it.institution||'Bank')}</b> <span class="muted tiny">${it.accounts.map(a=>esc(a.name)).join(', ')||'no accounts'}</span>
+        <div class="tiny ${it.last_error?'':'muted'}" style="${it.last_error?'color:var(--neg)':''}">${it.last_error?esc(it.last_error):it.last_sync?'Synced '+esc(it.last_sync.slice(0,16))+' UTC':'Not synced yet'}</div></span>
+      <button class="btn small danger" data-pl-off="${it.id}" data-name="${esc(it.institution||'this bank')}">Disconnect</button></div>`).join('');
+  $('#plaid-body').innerHTML=`${items||'<div class="muted tiny" style="margin-bottom:8px">No banks connected yet.</div>'}
+    <div class="row" style="gap:8px;margin:12px 0"><button class="btn primary" id="pl-connect">Connect a bank</button>${p.items.length?'<button class="btn" id="pl-sync">Sync now</button>':''}
+      <span class="muted tiny" id="pl-msg"></span></div>
+    ${p.env==='sandbox'?`<div class="notice" style="margin:0 0 12px">You're in <b>Sandbox</b>, Plaid's test mode: only made-up banks like "First Platypus Bank" appear (sign in with <code>user_good</code> / <code>pass_good</code>). To connect Chase, open <b>Plaid keys</b> below, choose <b>Production</b> and paste your <b>Production secret</b> (it's different from the Sandbox one) from <a href="https://dashboard.plaid.com/developers/keys" target="_blank" rel="noopener">Developers → Keys</a>.</div>`:''}
+    <details class="tiny" ${p.env==='sandbox'?'open':''}><summary class="muted">Plaid keys</summary><div style="margin-top:10px">${keys}</div></details>`;
+}
+function loadPlaidLink(){
+  if(window.Plaid) return Promise.resolve();
+  return new Promise((ok,fail)=>{ const sc=document.createElement('script'); sc.src=plaidState.link_script;
+    sc.onload=ok; sc.onerror=()=>fail(new Error("Couldn't load Plaid's window. Check your internet connection.")); document.head.appendChild(sc); });
+}
+function showSync(r){
+  const add=r.results.reduce((a,x)=>a+x.added,0), match=r.results.reduce((a,x)=>a+x.matched,0);
+  const notReady=r.results.some(x=>x.status==='NOT_READY');
+  toast(`Bank sync: ${plural(add,'new transaction')}`+(match?`, ${match} matched to ones you'd imported`:'')
+    +(r.results.reduce((a,x)=>a+(x.older||0),0)?`, ${r.results.reduce((a,x)=>a+(x.older||0),0)} older ones skipped (before your imported history for that account)`:'')+'.'
+    +(notReady?' Plaid is still gathering your history; sync again in a few minutes.':'')+(r.errors.length?' Problems: '+r.errors.join('; '):''),[],8000);
+}
+$('#plaid-body').addEventListener('click',e=>{
+  const t=e.target;
+  if(t.id==='pl-save') safe(async()=>{
+    const env=$('#pl-env').value, secret=$('#pl-secret').value;
+    if(plaidState.has_secret&&env!==plaidState.env&&!secret){
+      toast(`Paste your ${env==='production'?'Production':'Sandbox'} secret too: each environment has its own.`); $('#pl-secret').focus(); return; }
+    await api('/api/plaid/settings',{method:'PUT',json:{client_id:$('#pl-id').value,secret,env}});
+    toast(env==='production'?'Plaid keys saved. Production: Connect a bank now shows real banks like Chase.':'Plaid keys saved.'); renderPlaid(); });
+  if(t.id==='pl-sync') safe(async()=>{ t.disabled=true; $('#pl-msg').textContent='Syncing…';
+    try{ showSync(await api('/api/plaid/sync',{json:{}})); } finally{ refresh(); } });
+  if(t.id==='pl-connect') safe(async()=>{ t.disabled=true;
+    try{
+      const {link_token}=await api('/api/plaid/link-token',{json:{}}); await loadPlaidLink();
+      const handler=window.Plaid.create({token:link_token,
+        onSuccess:(public_token,meta)=>safe(async()=>{ $('#pl-msg').textContent='Connected. Downloading transactions…';
+          const r=await api('/api/plaid/exchange',{json:{public_token,institution:meta&&meta.institution}});
+          const acc=r.item.accounts.map(a=>a.name+(a.matched?' (matched to your existing account)':' (new)')).join('\n• ');
+          dialog(`Connected ${r.item.institution}.\n• ${acc}`,[{label:'OK',primary:true,fn:()=>{}}]); showSync(r.sync); refresh(); }),
+        onExit:(err)=>{ if(err) toast('Plaid: '+(err.display_message||err.error_message||err.error_code)); renderPlaid(); }});
+      handler.open();
+    } finally{ t.disabled=false; } });
+  const off=t.closest('[data-pl-off]');
+  if(off) dialog(`Disconnect ${off.dataset.name}? Plaid forgets the connection and syncing stops. Your accounts and transactions stay.`,[
+    {label:'Cancel',fn:()=>{}},{label:'Disconnect',primary:true,danger:true,fn:()=>safe(async()=>{
+      await api('/api/plaid/items/'+off.dataset.plOff,{method:'DELETE'}); toast('Disconnected.'); refresh(); })}]);
+});
+
+/* AI inside the import preview */
+const uncatId=()=> (META.categories.find(c=>c.name==='Uncategorized')||{}).id;
+const pvUncatIdx=()=> current? current.rows.map((t,i)=>i).filter(i=>current.rows[i].category_id===uncatId()&&!current.rows[i].manual):[];
+function aiPill(t){
+  if(t.category_source==='ai') return `<span class="pill ai" title="Suggested by local AI${t.ai_conf?` (${Math.round(t.ai_conf*100)}% sure)`:''}. Change it if it's wrong.">AI</span>`;
+  if(t.category_source==='learned') return '<span class="pill ai" title="Matched to how you categorized this merchant before">learned</span>';
+  return '';
+}
+function updatePvAIButton(){
+  const n=pvUncatIdx().length, b=$('#pv-ai-btn');
+  b.style.display=n&&current&&!current.aiRunning&&!current.aiDone?'':'none'; b.textContent=`✦ AI-categorize ${n} uncategorized`;
+}
+$('#pv-ai-btn').addEventListener('click',()=>safe(()=>aiPreview(current)));
+// Stop a file's AI requests: the app closes its connection to LM Studio, which stops generating.
+function cancelPreviewAI(job){
+  if(!job||!job.aiRunning||job.aiCancelled) return;
+  job.aiCancelled=true;
+  try{ fetch('/api/ai/cancel',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({tokens:[job.aiToken]})}); }catch(e){}
+  try{ job.aiAbort.abort(); }catch(e){}
+}
+function closePreview(){
+  if(!$('#preview-bg').classList.contains('show')&&!current) return;
+  cancelPreviewAI(current); queue.forEach(cancelPreviewAI);
+  queue.length=0; current=null; pvIndex=0; pvTotal=0; $('#preview-bg').classList.remove('show');
+}
+window.addEventListener('pagehide',()=>cancelPreviewAI(current));
+async function aiPreview(job){
+  if(!job||job.aiRunning) return;
+  job.aiCancelled=false; job.aiAbort=new AbortController(); job.aiToken=Math.random().toString(36).slice(2)+Date.now().toString(36);
+  const idx=pvUncatIdx(); if(!idx.length) return;
+  idx.sort((a,b)=>job.rows[a].description.localeCompare(job.rows[b].description));
+  const box=$('#pv-ai'); job.aiRunning=true; updatePvAIButton();
+  const show=html=>{ if(job===current){ box.style.display=''; box.innerHTML=html; } };
+  let done=0, got=0;
+  show(`<span class="row" style="gap:8px"><span class="spin"></span> AI is categorizing ${idx.length} uncategorized transaction${idx.length>1?'s':''}… you can keep reviewing.</span>`);
+  try{
+    for(let c=0;c<idx.length;c+=60){
+      const chunk=idx.slice(c,c+60);
+      const r=await api('/api/ai/suggest',{signal:job.aiAbort.signal,json:{token:job.aiToken,rows:chunk.map(i=>({description:job.rows[i].description,amount_cents:job.rows[i].amount_cents}))}});
+      if(job.aiCancelled||job!==current||r.cancelled) return;      // you moved on
+      r.results.forEach((sg,k)=>{ const t=job.rows[chunk[k]];
+        if(sg && !t.manual && t.category_id===uncatId()){ t.category_id=sg.category_id; t.category_source=sg.category_source; t.ai_conf=sg.confidence; got++; } });
+      done+=chunk.length; renderPreview();
+      if(done<idx.length) show(`<span class="row" style="gap:8px"><span class="spin"></span> AI is categorizing… ${done} of ${idx.length}</span>`);
+    }
+    const left=idx.length-got;
+    job.aiDone=true;
+    show(`✦ AI suggested categories for <strong>${got}</strong> of ${idx.length} uncategorized (tagged <span class="pill ai">AI</span>).`+(left?` ${left} left Uncategorized because it wasn't sure enough.`:'')+' Check them before importing.');
+  }catch(e){
+    if(job.aiCancelled) return;
+    show(`AI couldn't run: ${esc(e.message)} <button class="btn small" onclick="safe(()=>aiPreview(current))">Retry</button>`);
+  }finally{ job.aiRunning=false; if(job===current) updatePvAIButton(); }
+}
+
+/* ---------- toast ---------- */
+let toastTimer=null;
+function toast(msg,actions=[],ms=4500){
+  if(actions.length) return dialog(msg,actions);
+  $('#toast-msg').textContent=msg; const box=$('#toast-actions'); box.innerHTML='';
+  actions.forEach(a=>{const b=document.createElement('button');b.className='btn small'+(a.primary?' primary':'');b.textContent=a.label;b.onclick=()=>{hideToast();a.fn();};box.appendChild(b);});
+  $('#toast').classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(hideToast,ms);
+}
+function hideToast(){$('#toast').classList.remove('show');}
+
+/* Centered dialog for anything that asks you to choose. Esc or clicking outside = cancel. */
+let dlgCancel=null;
+function dialog(msg,actions,onCancel,extraHtml){
+  hideToast(); dlgCancel=onCancel||null; $('#dlg-bg .dialog').classList.remove('wide');
+  $('#dlg-msg').textContent=msg;
+  $('#dlg-extra').innerHTML=extraHtml||''; $('#dlg-extra').style.display=extraHtml?'':'none';
+  const box=$('#dlg-actions'); box.innerHTML='';
+  const ordered=[...actions.filter(a=>!a.primary),...actions.filter(a=>a.primary)];
+  let primaryBtn=null;
+  ordered.forEach(a=>{const b=document.createElement('button');
+    b.className='btn'+(a.primary?(a.danger?' danger-solid':' primary'):'');b.textContent=a.label;
+    b.onclick=()=>{dlgCancel=null;closeDialog();a.fn();};box.appendChild(b);if(a.primary)primaryBtn=b;});
+  $('#dlg-bg').classList.add('show');
+  const inp=$('#dlg-extra input');
+  if(inp){ inp.focus(); inp.select(); inp.addEventListener('keydown',e=>{ if(e.key==='Enter'&&primaryBtn){ e.preventDefault(); primaryBtn.click(); } }); }
+  else (primaryBtn||box.lastChild).focus();
+}
+function closeDialog(){ if(!$('#dlg-bg').classList.contains('show')) return; $('#dlg-bg').classList.remove('show'); const c=dlgCancel; dlgCancel=null; if(c) c(); }
+$('#dlg-bg').addEventListener('click',e=>{if(e.target.id==='dlg-bg')closeDialog();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#dlg-bg').classList.contains('show')){e.stopPropagation();closeDialog();}},true);
+
+/* ---------- init ---------- */
+go(loadFromURL(),{fromURL:true});
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+api('/api/ai/status').then(st=>{ if(st.running) watchAI(); }).catch(()=>{});
+</script>
+</body>
+</html>
