@@ -76,7 +76,7 @@ def save_settings(con, client_id: Optional[str], secret: Optional[str], env: Opt
 def _post(con, path: str, body: dict, timeout: float = 60) -> dict:
     s = get_settings(con)
     if not s["plaid_client_id"] or not s["plaid_secret"]:
-        raise PlaidError("Add your Plaid client ID and secret first (Accounts & Data → Bank connections).")
+        raise PlaidError("Add your Plaid client ID and secret first (Settings → Bank connections).")
     base = os.environ.get("PLAID_BASE_URL") or HOSTS[s["plaid_env"]]
     payload = {"client_id": s["plaid_client_id"], "secret": secrets.unseal(s["plaid_secret"]), **body}
     req = urllib.request.Request(base + path, data=json.dumps(payload).encode("utf-8"), method="POST",

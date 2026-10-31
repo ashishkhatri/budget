@@ -78,7 +78,7 @@ Categories have a *kind*. **Spending** categories count toward spending, **Incom
 Anything still **Uncategorized** after the steps above can be categorized by a model running in LM Studio on your computer. Nothing leaves your machine.
 
 1. In LM Studio, load a model and start the local server: **Developer** tab → **Start Server** (default port 1234).
-2. In the app, open **Accounts & Data → Local AI**. Click **Connect** and pick a model (or leave it on "First loaded model"). Settings save automatically.
+2. In the app, open **Settings → Local AI**. Click **Connect** and pick a model (or leave it on "First loaded model"). Settings save automatically.
 3. **When importing:** the preview asks the AI about uncategorized rows as soon as a file is loaded, and shows its suggestions with an **AI** tag before you click Import. Turn this off with "Suggest categories in the import preview automatically"; the preview then shows an **✦ AI-categorize** button instead.
 4. **For transactions already imported:** click **✦ Categorize with AI** on the dashboard or the Transactions page.
 
@@ -90,7 +90,7 @@ Any OpenAI-compatible server works, including Ollama at `http://127.0.0.1:11434/
 
 ## Bank sync (Plaid)
 
-**Accounts & Data → Bank connections** downloads transactions straight from your bank through [Plaid](https://plaid.com), instead of importing files. Plaid's free *Trial* plan connects up to 10 banks, including Chase.
+**Settings → Bank connections** downloads transactions straight from your bank through [Plaid](https://plaid.com), instead of importing files. Plaid's free *Trial* plan connects up to 10 banks, including Chase.
 
 **Setup:**
 1. Sign up at [dashboard.plaid.com](https://dashboard.plaid.com/signup).
