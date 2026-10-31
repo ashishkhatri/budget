@@ -225,7 +225,7 @@ def _history_start(con, account_id: int) -> Optional[str]:
     skipped: before that date your history came from files (often in a catch-all account), and
     adding it again would double it."""
     r = con.execute("""SELECT MIN(t.date) FROM transactions t JOIN imports i ON i.id = t.import_id
-                       WHERE t.account_id = ? AND i.source != 'plaid'""", (account_id,)).fetchone()
+                       WHERE t.account_id = ? AND i.source = 'file'""", (account_id,)).fetchone()
     return r[0] if r else None
 
 

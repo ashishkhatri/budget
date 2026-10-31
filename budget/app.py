@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+import datetime as dt
 import io
 import os
 from pathlib import Path
@@ -194,6 +195,73 @@ def create_app(db_path=None) -> Flask:
             WHERE {w} ORDER BY {sort} {direction}, t.date DESC, t.id DESC LIMIT ? OFFSET ?""",
             [*args, limit, offset]).fetchall()
         return jsonify(items=[dict(r) for r in rows], total=stats[0], net_cents=stats[1])
+
+    @app.post("/api/transactions")
+    def add_transaction():
+        """Add one transaction by hand (or from a scanned receipt)."""
+        b = body()
+        date = str(b.get("date") or "")
+        try:
+            dt.date.fromisoformat(date)
+        except ValueError:
+            raise ApiError("Pick a date.")
+        desc = " ".join(str(b.get("description") or "").split())[:200]
+        if not desc:
+            raise ApiError("Type who it was with (the merchant or a description).")
+        try:
+            amount = int(b.get("amount_cents"))
+        except (TypeError, ValueError):
+            raise ApiError("Type an amount.")
+        if not amount:
+            raise ApiError("The amount can't be zero.")
+        c = con()
+        with c:
+            if b.get("account_id"):
+                acct = c.execute("SELECT id FROM accounts WHERE id = ?", (int(b["account_id"]),)).fetchone()
+                if not acct:
+                    raise ApiError("Account not found.", 404)
+                aid = acct[0]
+            else:
+                aid = pipeline.get_or_create_account(c, (b.get("account") or "Cash").strip()[:60], account_type="other",
+                                                     source="manual")
+            row = {"date": date, "description": desc, "amount_cents": amount}
+            if b.get("category_id"):
+                category_or_400(b["category_id"])
+                row.update(category_id=int(b["category_id"]), manual=True)
+            res = pipeline.ingest(c, aid, [row], source="manual", filename="Added by hand")
+            if not res["inserted"]:
+                raise ApiError("That account already has this exact transaction (same date, amount and description).", 409)
+            tid = c.execute("SELECT MAX(id) FROM transactions WHERE import_id = ?", (res["import_id"],)).fetchone()[0]
+            note = " ".join(str(b.get("note") or "").split())[:500]
+            if note:
+                c.execute("UPDATE transactions SET note = ? WHERE id = ?", (note, tid))
+        return jsonify(ok=True, id=tid)
+
+    @app.post("/api/receipt")
+    def read_receipt():
+        """Read a receipt photo with the image model and find transactions it might already be."""
+        f = request.files.get("image")
+        if not f:
+            raise ApiError("No photo received.")
+        data = f.read()
+        if len(data) > 15_000_000:
+            raise ApiError("That photo is too large.")
+        c = con()
+        try:
+            r = ai.parse_receipt(c, data)
+        except ai.AIError as e:
+            raise ApiError(str(e), 502)
+        r["matches"] = []
+        if r["total_cents"]:
+            day = r["date"] or dt.date.today().isoformat()
+            lo = (dt.date.fromisoformat(day) - dt.timedelta(days=4 if r["date"] else 45)).isoformat()
+            hi = (dt.date.fromisoformat(day) + dt.timedelta(days=4)).isoformat()
+            r["matches"] = [dict(x) for x in c.execute("""
+                SELECT t.id, t.date, t.description, t.amount_cents, t.note, COALESCE(m.name, t.merchant) merchant, a.name account
+                FROM transactions t JOIN accounts a ON a.id = t.account_id LEFT JOIN merchants m ON m.id = t.merchant_id
+                WHERE t.amount_cents = ? AND t.date BETWEEN ? AND ? ORDER BY ABS(julianday(t.date) - julianday(?)) LIMIT 5""",
+                (-r["total_cents"], lo, hi, day))]
+        return jsonify(r)
 
     @app.patch("/api/transactions/<int:tid>")
     def update_tx(tid):

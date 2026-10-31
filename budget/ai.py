@@ -39,6 +39,7 @@ DEFAULTS = {
     "ai_enabled": "0",
     "ai_base_url": "http://127.0.0.1:1234/v1",
     "ai_model": "",
+    "ai_vision_model": "",        # reads receipt photos; blank = same as ai_model
     "ai_auto": "1",               # suggest categories while reviewing an import
     "ai_min_confidence": "0.6",
 }
@@ -558,3 +559,60 @@ def run(db_path: str, only_ids: Optional[List[int]] = None, progress=lambda **kw
         return out
     finally:
         con.close()
+
+
+# ---------------- receipts ----------------
+
+def parse_receipt(con, image: bytes, stop: Optional[threading.Event] = None) -> dict:
+    """Read a receipt photo with the image model: store, date, total, and a category guess.
+
+    Returns {merchant, date (YYYY-MM-DD or None), total_cents (positive, or None), category_id,
+    items: [short item names]}."""
+    import base64
+    s = get_settings(con)
+    base = s["ai_base_url"]
+    model = s["ai_vision_model"] or s["ai_model"]
+    if not model:
+        models = list_models(base)
+        if not models:
+            raise AIError("LM Studio has no model loaded. Load an image model, or pick one in Settings → Local AI.")
+        model = models[0]
+    cats = [dict(r) for r in con.execute(
+        "SELECT id, name, kind FROM categories WHERE kind = 'expense' ORDER BY sort_order, name")]
+    prompt = (
+        "This is a photo of a purchase receipt. Read it and answer with JSON only:\n"
+        '{"merchant": the store or business name as printed at the top (short, e.g. "H-E-B" or "Chipotle"), '
+        '"date": purchase date as YYYY-MM-DD or null, '
+        '"total": the final amount paid including tax and tip, as a number, '
+        '"category": the best fit from this list: [' + ", ".join(c["name"] for c in cats) + '], '
+        '"items": up to 8 short plain-English names of the main things bought}\n'
+        "If a field can't be read, use null. /no_think")
+    payload = {"model": model, "temperature": 0, "max_tokens": 1500,
+               "chat_template_kwargs": {"enable_thinking": False},
+               "messages": [{"role": "system", "content": "You read receipts accurately. Reply with one JSON object, no prose."},
+                            {"role": "user", "content": [
+                                {"type": "text", "text": prompt},
+                                {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," +
+                                                                    base64.b64encode(image).decode("ascii")}}]}]}
+    res = _stream(base.rstrip("/") + "/chat/completions", payload, 600, stop or threading.Event(),
+                  budget=think_budget(10))
+    try:
+        msg = res["choices"][0].get("message") or {}
+        text = msg.get("content") or msg.get("reasoning_content") or ""
+        data = parse_json(text)
+    except (KeyError, IndexError, TypeError, ValueError) as e:
+        raise AIError("The image model's answer couldn't be read. Try again, or a different image model.") from e
+    if not isinstance(data, dict):
+        raise AIError("The image model's answer couldn't be read. Try again, or a different image model.")
+    date = str(data.get("date") or "")
+    try:
+        total = round(abs(float(str(data.get("total") or "").replace("$", "").replace(",", ""))) * 100)
+    except ValueError:
+        total = None
+    by_name = {c["name"].lower(): c["id"] for c in cats}
+    items = [str(i).strip()[:60] for i in (data.get("items") or []) if str(i).strip()][:8]
+    return {"merchant": (str(data.get("merchant") or "").strip()[:80] or None),
+            "date": date if re.fullmatch(r"\d{4}-\d{2}-\d{2}", date) else None,
+            "total_cents": total or None,
+            "category_id": by_name.get(str(data.get("category") or "").strip().lower()),
+            "items": items, "model": model}

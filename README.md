@@ -43,6 +43,13 @@ Some things never count as duplicates:
 
 For each pair you can **Delete** the extra one or mark them **Not duplicates**. The suggested *keep* is the one you've categorized or noted, otherwise the one imported first. **Delete all extras** makes a backup first.
 
+## Adding transactions by hand
+
+**+ Add** on the Transactions page records anything your bank files don't have, such as cash purchases.
+- **Fields:** type the merchant, amount, date, category and account. The account defaults to a **Cash** account, which is created the first time.
+- **📷 Scan a receipt:** the image model in Settings → Local AI reads the store, date, total and main items from a photo, and fills in the form for you to check. The image model needs to be a vision model, like Qwen-VL or Gemma 3. "Same as text model" works when your text model can read images.
+- **Already there?** If a transaction with the same amount is already there (from your bank, within a few days), the app offers to add the receipt's items to it as a note instead of adding a copy.
+
 ## Merchants
 
 Every transaction belongs to a **merchant**. Merchants are their own records: they keep their name, category and notes even if you delete all their transactions. The bank's description is cleaned up into a short name (e.g. `0252-GAYLORD TEXAN GRAPVINE TX` becomes `GAYLORD TEXAN`), and that name is linked to a merchant.

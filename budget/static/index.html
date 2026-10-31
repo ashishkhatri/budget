@@ -67,7 +67,7 @@ h3{font-size:14px;margin:0 0 12px;font-weight:650;text-transform:uppercase;lette
 .btn.primary:hover{filter:brightness(1.08)}
 .btn.danger{color:var(--neg)}
 .btn.small{padding:3px 10px;font-size:12px}
-input[type=text],input[type=number],input[type=search],input[type=password],select{border:1px solid var(--line);background:var(--panel);padding:7px 10px;border-radius:8px;min-width:0}
+input[type=text],input[type=number],input[type=search],input[type=password],input[type=date],select{border:1px solid var(--line);background:var(--panel);padding:7px 10px;border-radius:8px;min-width:0}
 input:focus,select:focus{outline:2px solid var(--accent-soft);border-color:var(--accent)}
 table{width:100%;border-collapse:collapse}
 th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--panel);cursor:default}
@@ -295,6 +295,7 @@ input[type=date]{border:1px solid var(--line);background:var(--panel);padding:6p
       <button class="btn small ai-btn ai-run" id="tx-ai" style="display:none"></button>
       <span class="muted" id="tx-count"></span>
       <button class="btn danger small" id="tx-delete-sel" style="display:none">Delete selected</button>
+      <button class="btn small primary" id="tx-add" title="Add a cash purchase or anything your bank files don't have, typed in or from a receipt photo">+ Add</button>
     </div>
     <div class="card review dups" id="dups" style="display:none">
       <div class="review-head" id="dups-head">
@@ -452,6 +453,7 @@ input[type=date]{border:1px solid var(--line);background:var(--panel);padding:6p
           <p style="margin-top:0">Suggests categories for anything the normal rules leave <em>Uncategorized</em>, using a model running in LM Studio on this computer. Nothing leaves your machine. Changes save automatically.</p>
           <div class="field"><label>Server URL</label><div class="row" style="gap:6px"><input type="text" id="ai-url" style="flex:1"><button class="btn small" id="ai-test">Connect</button></div></div>
           <div class="field"><label>Model</label><select id="ai-model"><option value="">First loaded model</option></select></div>
+          <div class="field"><label>Image model</label><div><select id="ai-vmodel"><option value="">Same as text model</option></select><div class="tiny muted" style="margin-top:3px">Reads receipt photos when you add a transaction. Needs a vision model (e.g. Qwen-VL, Gemma 3).</div></div></div>
           <div class="field"><label>Min confidence</label><div class="row" style="gap:6px"><input type="number" id="ai-conf" min="0" max="1" step="0.05" style="width:90px"><span class="muted tiny">less sure than this → left Uncategorized</span></div></div>
           <div class="field"><label>When importing</label><label style="display:flex;gap:8px;align-items:center;color:inherit"><input type="checkbox" id="ai-auto"> Suggest categories in the import preview automatically</label></div>
           <div class="row"><button class="btn ai-btn ai-run" id="ai-run-now">✦ Categorize existing uncategorized now</button></div>
@@ -504,6 +506,22 @@ input[type=date]{border:1px solid var(--line);background:var(--panel);padding:6p
   </div>
 </div>
 
+<div class="modal-bg" id="add-bg"><div class="dialog wide" role="dialog" aria-modal="true" style="max-width:560px">
+  <div class="row" style="margin-bottom:10px"><h3 style="margin:0">Add a transaction</h3><div class="spacer"></div>
+    <button class="btn small" id="add-scan" title="Read the store, date and total from a photo with your image model (Settings → Local AI)">📷 Scan a receipt</button>
+    <input type="file" id="add-file" accept="image/*" capture="environment" hidden></div>
+  <div id="add-status" class="tiny muted" style="min-height:18px;margin-bottom:6px"></div>
+  <div id="add-matches" style="display:none;margin-bottom:12px"></div>
+  <div id="add-fields">
+    <div class="field"><label>Date</label><input type="date" id="add-date"></div>
+    <div class="field"><label>Merchant / description</label><input type="text" id="add-desc" list="add-merchants" autocomplete="off" placeholder="e.g. Farmers market"><datalist id="add-merchants"></datalist></div>
+    <div class="field"><label>Amount</label><div class="row" style="gap:6px;flex-wrap:nowrap"><select id="add-dir" style="width:auto"><option value="-1">Spent</option><option value="1">Received</option></select><input type="number" id="add-amount" min="0" step="0.01" placeholder="0.00" style="flex:1;min-width:0"></div></div>
+    <div class="field"><label>Category</label><select id="add-cat"></select></div>
+    <div class="field"><label>Account</label><select id="add-acct"></select></div>
+    <div class="field"><label>Note</label><input type="text" id="add-note" placeholder="optional"></div>
+  </div>
+  <div class="row" style="justify-content:flex-end;gap:8px;margin-top:6px"><button class="btn" id="add-cancel">Cancel</button><button class="btn primary" id="add-save">Add</button></div>
+</div></div>
 <div class="modal-bg dialog-bg" id="dlg-bg"><div class="dialog" role="dialog" aria-modal="true"><p id="dlg-msg"></p><div id="dlg-extra" style="display:none;margin:-6px 0 16px"></div><div class="row" id="dlg-actions"></div></div></div>
 <div class="toast" id="toast"><span id="toast-msg"></span><span id="toast-actions" class="row"></span></div>
 
@@ -906,6 +924,75 @@ $('#tx-delete-sel').addEventListener('click',()=>{const n=selected.size;
 
 /* ---------- needs-review panel (uncategorized, grouped by merchant) ---------- */
 let reviewGroups=[];
+/* ---------- add a transaction by hand / from a receipt ---------- */
+let addScan=null;           // last receipt reading, while the box is open
+function openAdd(){
+  addScan=null;
+  const today=new Date(), iso=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  $('#add-date').value=iso; $('#add-desc').value=''; $('#add-amount').value=''; $('#add-note').value=''; $('#add-dir').value='-1';
+  $('#add-cat').innerHTML='<option value="">Automatic (rules, keywords, AI)</option>'+catOptions(null);
+  const cash=META.accounts.find(a=>a.name.toLowerCase()==='cash');
+  $('#add-acct').innerHTML=(cash?'':'<option value="">Cash (new account)</option>')+META.accounts.map(a=>`<option value="${a.id}" ${cash&&a.id===cash.id?'selected':''}>${esc(a.name)}</option>`).join('');
+  $('#add-status').textContent=''; $('#add-matches').style.display='none'; $('#add-fields').style.opacity='';
+  api('/api/merchants').then(d=>{ $('#add-merchants').innerHTML=d.items.slice(0,400).map(m=>`<option value="${esc(m.name)}">`).join(''); }).catch(()=>{});
+  $('#add-bg').classList.add('show'); $('#add-desc').focus();
+}
+function closeAdd(){ $('#add-bg').classList.remove('show'); }
+$('#tx-add').addEventListener('click',openAdd);
+$('#add-cancel').addEventListener('click',closeAdd);
+$('#add-bg').addEventListener('click',e=>{ if(e.target.id==='add-bg') closeAdd(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('#add-bg').classList.contains('show')&&!$('#dlg-bg').classList.contains('show')) closeAdd(); });
+async function shrinkImage(file,max=1600,q=.85){     // smaller upload, faster for the model
+  try{ const bmp=await createImageBitmap(file,{imageOrientation:'from-image'});
+    const k=Math.min(1,max/Math.max(bmp.width,bmp.height)), c=document.createElement('canvas');
+    c.width=Math.round(bmp.width*k); c.height=Math.round(bmp.height*k); c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+    return await new Promise(r=>c.toBlob(r,'image/jpeg',q)); }catch(e){ return file; }
+}
+$('#add-scan').addEventListener('click',()=>{ $('#add-file').value=''; $('#add-file').click(); });
+$('#add-file').addEventListener('change',()=>safe(async()=>{
+  const f=$('#add-file').files[0]; if(!f) return;
+  const st=$('#add-status'); st.innerHTML='<span class="row" style="gap:8px"><span class="spin"></span> Reading the receipt…</span>';
+  $('#add-scan').disabled=true;
+  try{
+    const fd=new FormData(); fd.append('image',await shrinkImage(f),'receipt.jpg');
+    const r=addScan=await api('/api/receipt',{method:'POST',body:fd});
+    if(r.merchant) $('#add-desc').value=r.merchant;
+    if(r.date) $('#add-date').value=r.date;
+    if(r.total_cents) $('#add-amount').value=(r.total_cents/100).toFixed(2);
+    $('#add-dir').value='-1';
+    if(r.category_id) $('#add-cat').value=String(r.category_id);
+    if(r.items.length&&!$('#add-note').value) $('#add-note').value=r.items.join(', ');
+    const missing=[!r.merchant&&'store',!r.date&&'date',!r.total_cents&&'total'].filter(Boolean);
+    st.textContent=`Read by ${r.model}. Check the fields`+(missing.length?`; couldn't read the ${missing.join(', ')}.`:'.');
+    const mb=$('#add-matches');
+    if(r.matches.length){
+      mb.innerHTML=`<div class="notice" style="margin:0"><b>Already in your transactions?</b> ${plural(r.matches.length,'transaction')} with this amount:
+        ${r.matches.map((m,k)=>`<label style="display:flex;gap:8px;align-items:center;margin-top:6px;color:inherit"><input type="radio" name="add-match" value="${m.id}" ${k===0&&m.date===r.date?'checked':''}>
+          <span>${m.date} · <b>${esc(m.merchant||m.description)}</b> · ${money(m.amount_cents)} <span class="muted tiny">${esc(m.account)}</span></span></label>`).join('')}
+        <label style="display:flex;gap:8px;align-items:center;margin-top:6px;color:inherit"><input type="radio" name="add-match" value="" ${r.matches[0].date===r.date?'':'checked'}><span>No, it's a new transaction</span></label>
+        <div class="tiny muted" style="margin-top:4px">Picking one adds the receipt's items as its note (and your category, if you chose one) instead of adding a copy.</div></div>`;
+      mb.style.display=''; mb.dispatchEvent(new Event('change'));
+    } else mb.style.display='none';
+  } catch(e){ st.textContent=''; throw e; } finally{ $('#add-scan').disabled=false; }
+}));
+$('#add-matches').addEventListener('change',()=>{ const m=document.querySelector('input[name=add-match]:checked');
+  $('#add-fields').style.opacity=m&&m.value?'.55':''; $('#add-save').textContent=m&&m.value?'Update it':'Add'; });
+$('#add-save').addEventListener('click',()=>safe(async()=>{
+  const m=document.querySelector('input[name=add-match]:checked');
+  if(m&&m.value){
+    const json={note:$('#add-note').value}; if($('#add-cat').value) json.category_id=+$('#add-cat').value;
+    await api('/api/transactions/'+m.value,{method:'PATCH',json}); closeAdd(); toast('Receipt details added to that transaction.'); refresh(); return;
+  }
+  const amt=Math.round(parseFloat($('#add-amount').value)*100);
+  if(!$('#add-desc').value.trim()){ toast('Type the merchant or a description.'); $('#add-desc').focus(); return; }
+  if(!amt){ toast('Type an amount.'); $('#add-amount').focus(); return; }
+  const acct=$('#add-acct').value;
+  await api('/api/transactions',{json:{date:$('#add-date').value,description:$('#add-desc').value,amount_cents:amt*+$('#add-dir').value,
+    category_id:$('#add-cat').value?+$('#add-cat').value:null,note:$('#add-note').value,...(acct?{account_id:+acct}:{account:'Cash'})}});
+  closeAdd(); toast(`Added ${money(amt*+$('#add-dir').value)} at ${$('#add-desc').value.trim()}.`); refresh();
+}));
+$('#add-fields').addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.tagName==='INPUT'){ e.preventDefault(); $('#add-save').click(); } });
+
 /* ---------- possible duplicates ---------- */
 let dupGroups=[];
 const dupsCollapsed=()=>{ try{return localStorage.getItem('budget.dupsCollapsed')==='1';}catch(e){return false;} };
@@ -1458,15 +1545,17 @@ async function renderAISettings(){
   $('#ai-auto').checked=s.ai_auto==='1';
   $('#ai-url').value=s.ai_base_url; $('#ai-conf').value=s.ai_min_confidence;
   $('#ai-model').innerHTML=`<option value="">First loaded model</option>`+(s.ai_model?`<option selected>${esc(s.ai_model)}</option>`:'');
+  $('#ai-vmodel').innerHTML=`<option value="">Same as text model</option>`+(s.ai_vision_model?`<option selected>${esc(s.ai_vision_model)}</option>`:'');
   $('#ai-run-now').style.display=META.uncategorized?'':'none';
   loadModels(true);
 }
 async function loadModels(quiet){
-  const msg=$('#ai-msg'), cur=$('#ai-model').value;
+  const msg=$('#ai-msg'), cur=$('#ai-model').value, vcur=$('#ai-vmodel').value;
   if(!quiet){ msg.className='status-line muted'; msg.textContent='Connecting…'; }
   try{
     const r=await api('/api/ai/models?base_url='+encodeURIComponent($('#ai-url').value.trim()));
     $('#ai-model').innerHTML=`<option value="">First loaded model${r.models[0]?` (${esc(r.models[0])})`:''}</option>`+r.models.map(m=>`<option ${m===cur?'selected':''}>${esc(m)}</option>`).join('');
+    $('#ai-vmodel').innerHTML='<option value="">Same as text model</option>'+r.models.map(m=>`<option ${m===vcur?'selected':''}>${esc(m)}</option>`).join('');
     msg.className='status-line pos'; msg.textContent=r.models.length?`Connected · ${r.models.length} model${r.models.length>1?'s':''} available`:'Connected, but no models are available. Load one in LM Studio.';
   }catch(e){ msg.className='status-line neg'; msg.textContent=e.message; }
 }
@@ -1474,11 +1563,11 @@ $('#ai-test').addEventListener('click',()=>loadModels(false));
 async function saveAISettings(){
   await safe(async()=>{
     await api('/api/ai/settings',{method:'PUT',json:{ai_auto:$('#ai-auto').checked,
-      ai_base_url:$('#ai-url').value.trim(),ai_model:$('#ai-model').value,ai_min_confidence:$('#ai-conf').value}});
+      ai_base_url:$('#ai-url').value.trim(),ai_model:$('#ai-model').value,ai_vision_model:$('#ai-vmodel').value,ai_min_confidence:$('#ai-conf').value}});
     await loadMeta(); toast('AI settings saved.',[],1800);
   });
 }
-['#ai-auto','#ai-model','#ai-conf'].forEach(id=>$(id).addEventListener('change',saveAISettings));
+['#ai-auto','#ai-model','#ai-vmodel','#ai-conf'].forEach(id=>$(id).addEventListener('change',saveAISettings));
 $('#ai-url').addEventListener('change',async()=>{ await saveAISettings(); loadModels(false); });
 
 /* ---------- bank connections (Plaid) ---------- */
