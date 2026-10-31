@@ -1,36 +1,66 @@
-# Publishes a GitHub release whenever the version in budget/__init__.py changes on main.
-# The release notes are that version's section of CHANGELOG.md.
-name: Release
-
+name: release
+# Releases happen automatically: bump __version__ in budget/__init__.py and push to main.
+# If there's no v<version> tag yet, this runs the tests, then creates the tag and GitHub release.
+# Pushing a v* tag yourself, or running this workflow by hand, works too.
 on:
   push:
     branches: [main]
-
+    tags: ["v*"]
+  workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  release:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      release: ${{ steps.v.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: v
+        run: |
+          v=$(python3 -c "import budget; print(budget.__version__)")
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "::error::budget/__init__.py says $v but the tag is $GITHUB_REF_NAME"; exit 1; }
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          elif git rev-parse -q --verify "refs/tags/v$v" >/dev/null; then
+            echo "v$v is already released; bump __version__ to release again."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "New version v$v: releasing."
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  test:
+    needs: plan
+    if: needs.plan.outputs.release == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -m unittest discover tests
 
-      - name: Read version
-        id: v
-        run: echo "version=$(python3 -c 'import re;print(re.search(r"__version__ = \"(.+?)\"", open("budget/__init__.py").read()).group(1))')" >> "$GITHUB_OUTPUT"
-
-      - name: Publish release if it doesn't exist yet
-        env:
+  github-release:
+    needs: [plan, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - env:
           GH_TOKEN: ${{ github.token }}
-          TAG: v${{ steps.v.outputs.version }}
+          TAG: v${{ needs.plan.outputs.version }}
+        # Creates the tag at this commit if it doesn't exist yet (the normal, automatic path).
+        # The notes are the message of the commit being released.
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "$TAG already released"; exit 0
-          fi
-          # notes = the "## vX.Y.Z" section of CHANGELOG.md, up to the next "## "
-          awk -v tag="$TAG" '
-            $0 ~ "^## " { if (found) exit; if (index($0, "## " tag) == 1) { found=1; next } }
-            found { print }
-          ' CHANGELOG.md > notes.md
-          [ -s notes.md ] || echo "See CHANGELOG.md." > notes.md
-          gh release create "$TAG" --target "$GITHUB_SHA" --title "$TAG" --notes-file notes.md
+          gh release view "$TAG" >/dev/null 2>&1 && exit 0
+          git log -1 --format=%B "$GITHUB_SHA" | grep -v -e '^Co-Authored-By:' -e '^Claude-Session:' > notes.md
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "Budget $TAG" --notes-file notes.md

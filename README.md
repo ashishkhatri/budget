@@ -122,3 +122,9 @@ Any OpenAI-compatible server works, including Ollama at `http://127.0.0.1:11434/
 `budget/providers/base.py` defines a `Provider` with two methods: `list_accounts()` and `fetch_transactions()`. The second returns `Candidate` objects that carry a stable `external_id`. `sync_account()` sends them through the same pipeline as file imports, so rules, categories and dedupe all work unchanged. The database already has `accounts.source`/`external_id` and `transactions.external_id`/`pending` columns for this. Re-syncing overlapping dates is safe because `(account_id, external_id)` is unique.
 
 To change the database schema, add a new numbered entry to `MIGRATIONS` in `db.py`. Don't edit the existing entries.
+
+## Releasing
+
+Bump `__version__` in `budget/__init__.py` and push to `main`. That's all.
+- **What happens:** GitHub Actions sees a version with no release yet. It runs the tests and creates the `v<version>` tag and release, with the commit message as the release notes.
+- **Pushes that don't change the version** only run the tests.
