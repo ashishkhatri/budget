@@ -129,6 +129,8 @@ td select:not([multiple]){background-position:right 8px center;padding-right:24p
 tr.dup td{opacity:.5}
 .chart svg{width:100%;height:auto;display:block}
 .chart text{fill:var(--muted);font-size:11px}
+.app-foot{display:flex;justify-content:flex-end;margin-top:28px}
+.app-foot a{text-decoration:none}.app-foot a:hover{color:var(--ink)}
 #dash-trend{position:relative;cursor:pointer}
 #dash-trend .tm{transition:opacity .08s}
 #dash-trend.hover .tm{opacity:.3}
@@ -474,6 +476,7 @@ input[type=date]{border:1px solid var(--line);background:var(--panel);padding:6p
     </div>
     <p class="muted tiny" id="stats" style="margin-top:16px"></p>
   </section>
+  <footer class="app-foot"><a id="version" class="tiny muted" target="_blank" rel="noopener" title="What's new in this version"></a></footer>
 </main>
 
 <div class="modal-bg" id="preview-bg">
@@ -551,7 +554,9 @@ async function safe(fn){ try{ return await fn(); }catch(e){ console.error(e); to
 let META={categories:[],accounts:[],months:[]};
 const cat=id=>META.categories.find(c=>c.id===id)||{name:'?',color:'#999'};
 const catOptions=sel=>META.categories.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}</option>`).join('');
-async function loadMeta(){ META=await api('/api/meta'); }
+async function loadMeta(){ META=await api('/api/meta');
+  const v=$('#version'); if(META.version&&v.dataset.v!==META.version){ v.dataset.v=META.version; v.textContent='Budget v'+META.version;
+    v.href='https://github.com/ashishkhatri/budget/releases/tag/v'+META.version; } }
 
 /* ---------- navigation ---------- */
 let view='dashboard';

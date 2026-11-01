@@ -9,6 +9,7 @@ from pathlib import Path
 
 from flask import Flask, Response, g, jsonify, request, send_from_directory
 
+from . import __version__
 from . import db as dbm
 from . import ai, duplicates, pipeline, plaid, recurring, reports
 from .categorize import detail_key, merchant_key, pattern_matches
@@ -99,7 +100,7 @@ def create_app(db_path=None) -> Flask:
             GROUP BY a.id ORDER BY a.name""")]
         total = c.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
         backups = dbm.list_backups(app.config["BACKUP_DIR"])
-        return jsonify(categories=cats, accounts=accts, months=reports.months(c), tx_total=total,
+        return jsonify(categories=cats, accounts=accts, months=reports.months(c), tx_total=total, version=__version__,
                        rule_count=c.execute("SELECT COUNT(*) FROM rules").fetchone()[0],
                        db_path=app.config["DB_PATH"],
                        last_backup=backups[0].name if backups else None,
