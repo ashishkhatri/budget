@@ -210,6 +210,8 @@ input[type=date]{border:1px solid var(--line);background:var(--panel);padding:6p
 .tx-m .tx-x:hover{color:var(--ink)}
 .tx-m .tx-orig{display:none;color:var(--muted);font-size:12px;white-space:normal;word-break:break-word;margin-top:2px}
 .tx-m.open .tx-orig{display:block}
+.tx-m .tx-rcpt{background:none;border:0;cursor:pointer;padding:0 2px;font-size:13px;opacity:.75}.tx-m .tx-rcpt:hover{opacity:1}
+.tx-acts{margin-top:3px}.tx-acts a{color:var(--muted)}.tx-acts a:hover{color:var(--accent)}
 .tx-m.open .tx-x{transform:rotate(90deg)}
 .tx-m.open{white-space:normal}
 .msel{position:relative}
@@ -509,11 +511,14 @@ input[type=date]{border:1px solid var(--line);background:var(--panel);padding:6p
   </div>
 </div>
 
+<div class="modal-bg" id="rcpt-bg" style="z-index:45;cursor:zoom-out"><img alt="Receipt" style="max-width:min(92vw,900px);max-height:92vh;border-radius:8px;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.4)"></div>
+<input type="file" id="rcpt-file" accept="image/*" capture="environment" hidden>
 <div class="modal-bg" id="add-bg"><div class="dialog wide" role="dialog" aria-modal="true" style="max-width:560px">
   <div class="row" style="margin-bottom:10px"><h3 style="margin:0">Add a transaction</h3><div class="spacer"></div>
     <button class="btn small" id="add-scan" title="Read the store, date and total from a photo with your image model (Settings → Local AI)">📷 Scan a receipt</button>
     <input type="file" id="add-file" accept="image/*" capture="environment" hidden></div>
   <div id="add-status" class="tiny muted" style="min-height:18px;margin-bottom:6px"></div>
+  <div id="add-photo" style="display:none;margin-bottom:10px" class="tiny muted"><img alt="Receipt" style="max-height:90px;border-radius:6px;border:1px solid var(--line);vertical-align:middle;cursor:zoom-in;margin-right:8px"><span>The photo is saved with the transaction.</span> <a href="#" id="add-photo-x">Don't keep it</a></div>
   <div id="add-matches" style="display:none;margin-bottom:12px"></div>
   <div id="add-fields">
     <div class="field"><label>Date</label><input type="date" id="add-date"></div>
@@ -546,7 +551,7 @@ async function api(path,opts={}){
   let r;
   try{ r=await fetch(path,o); }catch(e){ throw new Error('Can’t reach the app. Is the Budget window (start.bat) still open?'); }
   let d=null; try{d=await r.json();}catch(e){}
-  if(!r.ok) throw new Error((d&&d.error)||('Request failed ('+r.status+')'));
+  if(!r.ok){ const err=new Error((d&&d.error)||('Request failed ('+r.status+')')); err.data=d; throw err; }
   return d;
 }
 async function safe(fn){ try{ return await fn(); }catch(e){ console.error(e); toast(e.message); } }
@@ -836,7 +841,8 @@ function txRow(t, filtered){
   return `<tr>
     <td><input type="checkbox" class="tx-sel" data-id="${t.id}" ${selected.has(t.id)?'checked':''}></td>
     <td class="date">${t.date}</td>
-    <td class="desc tx-m" title="${esc(t.description)}">${t.merchant_id?`<a href="#" class="mlink tx-mlink" data-mid="${t.merchant_id}" title="${filtered.has(String(t.merchant_id))?'Stop filtering by':'Filter by'} ${esc(t.merchant)}  ·  ${esc(t.description)}">${esc(t.merchant)}</a>`:esc(t.description)}<button class="tx-x" title="Show the description from the bank">▸</button>${t.note?` <span class="pill">${esc(t.note)}</span>`:''}<div class="tx-orig">${esc(t.description)}</div></td>
+    <td class="desc tx-m" title="${esc(t.description)}">${t.merchant_id?`<a href="#" class="mlink tx-mlink" data-mid="${t.merchant_id}" title="${filtered.has(String(t.merchant_id))?'Stop filtering by':'Filter by'} ${esc(t.merchant)}  ·  ${esc(t.description)}">${esc(t.merchant)}</a>`:esc(t.description)}<button class="tx-x" title="Show the description from the bank">▸</button>${t.receipt?`<button class="tx-rcpt" data-r="${esc(t.receipt)}" title="View the receipt">🧾</button>`:''}${t.note?` <span class="pill">${esc(t.note)}</span>`:''}<div class="tx-orig">${esc(t.description)}
+      <div class="tx-acts">${t.receipt?`<a href="#" data-rcpt-del="${t.id}">Remove receipt photo</a>`:`<a href="#" data-rcpt-add="${t.id}">Attach a receipt photo</a>`}</div></div></td>
     <td style="white-space:nowrap"><span class="dot" style="background:${cat(t.category_id).color}"></span><select class="tx-cat" data-id="${t.id}">${catOptions(t.category_id)}</select>${t.category_source==='ai'?'<span class="pill ai" title="Chosen by local AI. Change it to confirm or correct.">AI</span>':t.category_source==='learned'?'<span class="pill ai" title="Matched to how you categorized this merchant before">learned</span>':''}</td>
     <td class="muted tiny clip" title="${esc(t.account)}">${esc(t.account)}</td>
     <td class="num ${t.amount_cents<0?'':'pos'}">${money(t.amount_cents)}</td></tr>`;
@@ -901,6 +907,11 @@ $('#tx-search').addEventListener('input',e=>{txF.q=e.target.value;clearTimeout(t
 $('#tx-ai-only').addEventListener('change',e=>{txF.source=e.target.checked?'ai':'';safe(loadTx);});
 $('#tx-body').addEventListener('click',e=>{
   const x=e.target.closest('.tx-x'); if(x){ x.closest('td').classList.toggle('open'); return; }
+  const rv=e.target.closest('.tx-rcpt'); if(rv){ showReceipt(rv.dataset.r); return; }
+  const ra=e.target.closest('[data-rcpt-add]'); if(ra){ e.preventDefault(); attachReceipt(+ra.dataset.rcptAdd); return; }
+  const rd=e.target.closest('[data-rcpt-del]'); if(rd){ e.preventDefault();
+    dialog('Remove the receipt photo from this transaction?',[{label:'Cancel',fn:()=>{}},{label:'Remove',primary:true,danger:true,fn:()=>safe(async()=>{
+      await api(`/api/transactions/${rd.dataset.rcptDel}/receipt`,{method:'DELETE'}); loadTx(); })}]); return; }
   const a=e.target.closest('a.tx-mlink'); if(!a) return; e.preventDefault();
   normTxF(); const id=String(a.dataset.mid);
   txF.merchant=txF.merchant.includes(id)?txF.merchant.filter(x=>x!==id):[...txF.merchant,id];   // click again to un-filter
@@ -930,9 +941,14 @@ $('#tx-delete-sel').addEventListener('click',()=>{const n=selected.size;
 /* ---------- needs-review panel (uncategorized, grouped by merchant) ---------- */
 let reviewGroups=[];
 /* ---------- add a transaction by hand / from a receipt ---------- */
-let addScan=null;           // last receipt reading, while the box is open
+let addScan=null, addToken=null;           // last receipt reading and its saved photo, while the box is open
+function showAddPhoto(blob){
+  const box=$('#add-photo'), img=box.querySelector('img');
+  if(img.src) URL.revokeObjectURL(img.src);
+  if(blob){ img.src=URL.createObjectURL(blob); box.style.display=''; } else { img.removeAttribute('src'); box.style.display='none'; }
+}
 function openAdd(){
-  addScan=null;
+  addScan=null; addToken=null; showAddPhoto(null);
   const today=new Date(), iso=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
   $('#add-date').value=iso; $('#add-desc').value=''; $('#add-amount').value=''; $('#add-note').value=''; $('#add-dir').value='-1';
   $('#add-cat').innerHTML='<option value="">Automatic (rules, keywords, AI)</option>'+catOptions(null);
@@ -945,6 +961,19 @@ function openAdd(){
 function closeAdd(){ $('#add-bg').classList.remove('show'); }
 $('#tx-add').addEventListener('click',openAdd);
 $('#add-cancel').addEventListener('click',closeAdd);
+$('#add-photo-x').addEventListener('click',e=>{ e.preventDefault(); addToken=null; showAddPhoto(null); });
+$('#add-photo img').addEventListener('click',e=>window.open(e.target.src,'_blank'));
+// view a saved receipt full size; attach one to a transaction that's already there
+function showReceipt(name){ const bg=$('#rcpt-bg'); bg.querySelector('img').src='/api/receipts/'+encodeURIComponent(name); bg.classList.add('show'); }
+$('#rcpt-bg').addEventListener('click',()=>$('#rcpt-bg').classList.remove('show'));
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') $('#rcpt-bg').classList.remove('show'); });
+function attachReceipt(tid){
+  const inp=$('#rcpt-file'); inp.value=''; inp.onchange=()=>safe(async()=>{
+    const f=inp.files[0]; if(!f) return;
+    const fd=new FormData(); fd.append('image',await shrinkImage(f),'receipt.jpg');
+    await api(`/api/transactions/${tid}/receipt`,{method:'POST',body:fd}); toast('Receipt photo saved.'); loadTx(); });
+  inp.click();
+}
 $('#add-bg').addEventListener('click',e=>{ if(e.target.id==='add-bg') closeAdd(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&$('#add-bg').classList.contains('show')&&!$('#dlg-bg').classList.contains('show')) closeAdd(); });
 async function shrinkImage(file,max=1600,q=.85){     // smaller upload, faster for the model
@@ -959,8 +988,11 @@ $('#add-file').addEventListener('change',()=>safe(async()=>{
   const st=$('#add-status'); st.innerHTML='<span class="row" style="gap:8px"><span class="spin"></span> Reading the receipt…</span>';
   $('#add-scan').disabled=true;
   try{
-    const fd=new FormData(); fd.append('image',await shrinkImage(f),'receipt.jpg');
-    const r=addScan=await api('/api/receipt',{method:'POST',body:fd});
+    const small=await shrinkImage(f), fd=new FormData(); fd.append('image',small,'receipt.jpg');
+    let r;
+    try{ r=addScan=await api('/api/receipt',{method:'POST',body:fd}); }
+    catch(e){ if(e.data&&e.data.receipt_token){ addToken=e.data.receipt_token; showAddPhoto(small); } throw e; }
+    addToken=r.receipt_token; showAddPhoto(small);
     if(r.merchant) $('#add-desc').value=r.merchant;
     if(r.date) $('#add-date').value=r.date;
     if(r.total_cents) $('#add-amount').value=(r.total_cents/100).toFixed(2);
@@ -986,14 +1018,15 @@ $('#add-save').addEventListener('click',()=>safe(async()=>{
   const m=document.querySelector('input[name=add-match]:checked');
   if(m&&m.value){
     const json={note:$('#add-note').value}; if($('#add-cat').value) json.category_id=+$('#add-cat').value;
-    await api('/api/transactions/'+m.value,{method:'PATCH',json}); closeAdd(); toast('Receipt details added to that transaction.'); refresh(); return;
+    if(addToken) json.receipt_token=addToken;
+    await api('/api/transactions/'+m.value,{method:'PATCH',json}); closeAdd(); toast('Receipt added to that transaction.'); refresh(); return;
   }
   const amt=Math.round(parseFloat($('#add-amount').value)*100);
   if(!$('#add-desc').value.trim()){ toast('Type the merchant or a description.'); $('#add-desc').focus(); return; }
   if(!amt){ toast('Type an amount.'); $('#add-amount').focus(); return; }
   const acct=$('#add-acct').value;
   await api('/api/transactions',{json:{date:$('#add-date').value,description:$('#add-desc').value,amount_cents:amt*+$('#add-dir').value,
-    category_id:$('#add-cat').value?+$('#add-cat').value:null,note:$('#add-note').value,...(acct?{account_id:+acct}:{account:'Cash'})}});
+    category_id:$('#add-cat').value?+$('#add-cat').value:null,note:$('#add-note').value,receipt_token:addToken,...(acct?{account_id:+acct}:{account:'Cash'})}});
   closeAdd(); toast(`Added ${money(amt*+$('#add-dir').value)} at ${$('#add-desc').value.trim()}.`); refresh();
 }));
 $('#add-fields').addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.tagName==='INPUT'){ e.preventDefault(); $('#add-save').click(); } });

@@ -11,7 +11,7 @@ from flask import Flask, Response, g, jsonify, request, send_from_directory
 
 from . import __version__
 from . import db as dbm
-from . import ai, duplicates, pipeline, plaid, recurring, reports
+from . import ai, duplicates, pipeline, plaid, receipts, recurring, reports
 from .categorize import detail_key, merchant_key, pattern_matches
 from .parsing import ParseError, parse_file
 
@@ -20,9 +20,10 @@ DATA_DIR = Path(os.environ.get("BUDGET_DATA_DIR", ROOT / "data"))
 
 
 class ApiError(Exception):
-    def __init__(self, message, status=400):
+    def __init__(self, message, status=400, **extra):
         super().__init__(message)
         self.status = status
+        self.extra = extra
 
 
 def create_app(db_path=None) -> Flask:
@@ -35,6 +36,7 @@ def create_app(db_path=None) -> Flask:
     try:
         with _c:
             pipeline.refresh_merchants(_c)
+        receipts.clean_up(_c, app.config["DB_PATH"])
     finally:
         _c.close()
 
@@ -51,7 +53,7 @@ def create_app(db_path=None) -> Flask:
 
     @app.errorhandler(ApiError)
     def _api_err(e):
-        return jsonify(error=str(e)), e.status
+        return jsonify(error=str(e), **e.extra), e.status
 
     @app.errorhandler(ParseError)
     def _parse_err(e):
@@ -190,7 +192,7 @@ def create_app(db_path=None) -> Flask:
                               LEFT JOIN merchants m ON m.id = t.merchant_id WHERE {w}""", args).fetchone()
         rows = c.execute(f"""
             SELECT t.id, t.date, t.description, t.amount_cents, t.category_id, t.category_source, t.merchant_id,
-                   m.name merchant, t.note, t.pending, a.name account, t.account_id
+                   m.name merchant, t.note, t.pending, a.name account, t.account_id, t.receipt
             FROM transactions t JOIN accounts a ON a.id = t.account_id
             LEFT JOIN merchants m ON m.id = t.merchant_id
             WHERE {w} ORDER BY {sort} {direction}, t.date DESC, t.id DESC LIMIT ? OFFSET ?""",
@@ -236,6 +238,7 @@ def create_app(db_path=None) -> Flask:
             note = " ".join(str(b.get("note") or "").split())[:500]
             if note:
                 c.execute("UPDATE transactions SET note = ? WHERE id = ?", (note, tid))
+            receipts.attach(c, app.config["DB_PATH"], tid, b.get("receipt_token"))
         return jsonify(ok=True, id=tid)
 
     @app.post("/api/receipt")
@@ -248,10 +251,13 @@ def create_app(db_path=None) -> Flask:
         if len(data) > 15_000_000:
             raise ApiError("That photo is too large.")
         c = con()
+        token = receipts.save_pending(app.config["DB_PATH"], data)     # kept small, whatever the AI says
         try:
             r = ai.parse_receipt(c, data)
         except ai.AIError as e:
-            raise ApiError(str(e), 502)
+            raise ApiError(str(e) + " The photo is still attached if you fill in the fields yourself.", 502,
+                           receipt_token=token)
+        r["receipt_token"] = token
         r["matches"] = []
         if r["total_cents"]:
             day = r["date"] or dt.date.today().isoformat()
@@ -285,7 +291,38 @@ def create_app(db_path=None) -> Flask:
                                merchant_has_category=m["category_id"] is not None)
             if "note" in b:
                 c.execute("UPDATE transactions SET note = ? WHERE id = ?", ((b["note"] or "").strip() or None, tid))
+            if b.get("receipt_token"):
+                out["receipt"] = receipts.attach(c, app.config["DB_PATH"], tid, b["receipt_token"])
         return jsonify(out)
+
+    @app.get("/api/receipts/<name>")
+    def receipt_image(name):
+        p = receipts.path_for(app.config["DB_PATH"], name)
+        if not p:
+            raise ApiError("Receipt not found.", 404)
+        return send_from_directory(str(p.parent), p.name, mimetype="image/jpeg", max_age=86400)
+
+    @app.post("/api/transactions/<int:tid>/receipt")
+    def upload_receipt(tid):
+        """Attach a photo to a transaction that's already there (no AI involved)."""
+        f = request.files.get("image")
+        if not f:
+            raise ApiError("No photo received.")
+        c = con()
+        if not c.execute("SELECT 1 FROM transactions WHERE id = ?", (tid,)).fetchone():
+            raise ApiError("Transaction not found.", 404)
+        token = receipts.save_pending(app.config["DB_PATH"], f.read())
+        with c:
+            name = receipts.attach(c, app.config["DB_PATH"], tid, token)
+        return jsonify(ok=True, receipt=name)
+
+    @app.delete("/api/transactions/<int:tid>/receipt")
+    def remove_receipt(tid):
+        c = con()
+        with c:
+            c.execute("UPDATE transactions SET receipt = NULL WHERE id = ?", (tid,))
+        receipts.clean_up(c, app.config["DB_PATH"])
+        return jsonify(ok=True)
 
     @app.post("/api/transactions/categorize")
     def categorize_many():

@@ -48,6 +48,7 @@ For each pair you can **Delete** the extra one or mark them **Not duplicates**. 
 **+ Add** on the Transactions page records anything your bank files don't have, such as cash purchases.
 - **Fields:** type the merchant, amount, date, category and account. The account defaults to a **Cash** account, which is created the first time.
 - **📷 Scan a receipt:** the image model in Settings → Local AI reads the store, date, total and main items from a photo, and fills in the form for you to check. The image model needs to be a vision model, like Qwen-VL or Gemma 3. "Same as text model" works when your text model can read images.
+- **Receipt photos are kept** with the transaction, in `data\receipts\`. Each is saved small: grayscale JPEG, at most 1400 px, usually 30–150 KB, and still easy to read. A 🧾 next to a transaction opens its photo. To attach or remove one later, click ▸ on the transaction. Database backups don't include the photos, so copy `data\receipts\` too if you want them backed up.
 - **Already there?** If a transaction with the same amount is already there (from your bank, within a few days), the app offers to add the receipt's items to it as a note instead of adding a copy.
 
 ## Merchants

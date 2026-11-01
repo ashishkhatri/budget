@@ -140,6 +140,10 @@ MIGRATIONS = {
     );
     ALTER TABLE accounts ADD COLUMN plaid_item INTEGER REFERENCES plaid_items(id) ON DELETE SET NULL;
     """,
+    7: """
+    -- file name of a saved receipt photo in data/receipts (see receipts.py)
+    ALTER TABLE transactions ADD COLUMN receipt TEXT;
+    """,
 }
 
 

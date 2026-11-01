@@ -98,6 +98,54 @@ class TestManual(unittest.TestCase):
         self.assertEqual(req["model"], "qwen2.5-vl-7b")                           # the image model, not the text one
         self.assertEqual(req["messages"][1]["content"][1]["type"], "image_url")
 
+    def photo(self):
+        from PIL import Image, ImageDraw
+        im = Image.new("RGB", (3000, 4000), "white")
+        d = ImageDraw.Draw(im)
+        for y in range(0, 4000, 60):
+            d.text((100, y), f"ITEM {y} ..... 3.99", fill=(20, 20, 20))
+        buf = io.BytesIO()
+        im.save(buf, "JPEG", quality=95)
+        return buf.getvalue()
+
+    def test_receipt_photo_is_kept_small_and_attached(self):
+        from PIL import Image
+        FakeVision.answer = {"merchant": "Farmers market", "date": "2026-10-30", "total": 24, "category": "Groceries", "items": []}
+        big = self.photo()
+        r = self.client.post("/api/receipt", data={"image": (io.BytesIO(big), "r.jpg")}, content_type="multipart/form-data").json
+        self.assertTrue(r["receipt_token"])
+        add = self.client.post("/api/transactions", json={"date": r["date"], "description": r["merchant"], "amount_cents": -2400,
+                                                         "receipt_token": r["receipt_token"]}).json
+        t = next(t for t in self.txs() if t["id"] == add["id"])
+        self.assertTrue(t["receipt"].startswith(f"{add['id']}-"))
+        img = self.client.get(f"/api/receipts/{t['receipt']}")
+        self.assertEqual(img.status_code, 200)
+        self.assertLess(len(img.data), len(big) / 5)
+        pic = Image.open(io.BytesIO(img.data))
+        self.assertEqual((max(pic.size), pic.mode), (1400, "L"))
+        img.close()
+        # attach a photo to a transaction that's already there, then remove it
+        other = self.client.post("/api/transactions", json={"date": "2026-10-29", "description": "Bakery", "amount_cents": -800}).json["id"]
+        self.client.post(f"/api/transactions/{other}/receipt", data={"image": (io.BytesIO(big), "b.jpg")},
+                         content_type="multipart/form-data")
+        name = next(t for t in self.txs() if t["id"] == other)["receipt"]
+        self.assertEqual(self.client.get(f"/api/receipts/{name}").status_code, 200)
+        self.client.delete(f"/api/transactions/{other}/receipt")
+        self.assertIsNone(next(t for t in self.txs() if t["id"] == other)["receipt"])
+        self.assertEqual(self.client.get(f"/api/receipts/{name}").status_code, 404)        # file cleaned up
+        # deleting the transaction removes its photo at the next start
+        from budget.app import create_app as again
+        self.client.post("/api/transactions/delete", json={"ids": [add["id"]]})
+        again(os.path.join(self.tmp.name, "t.sqlite"))
+        self.assertFalse(os.path.exists(os.path.join(self.tmp.name, "receipts", t["receipt"])))
+        self.assertEqual(self.client.get("/api/receipts/..%2Ft.sqlite").status_code, 404)
+
+    def test_failed_reading_still_keeps_the_photo(self):
+        FakeVision.answer = ["nope"]
+        r = self.client.post("/api/receipt", data={"image": (io.BytesIO(self.photo()), "r.jpg")}, content_type="multipart/form-data")
+        self.assertEqual(r.status_code, 502)
+        self.assertTrue(r.json["receipt_token"])
+
     def test_unreadable_answer(self):
         FakeVision.answer = ["not", "an", "object"]
         r = self.client.post("/api/receipt", data={"image": (io.BytesIO(b"x"), "r.jpg")}, content_type="multipart/form-data")
